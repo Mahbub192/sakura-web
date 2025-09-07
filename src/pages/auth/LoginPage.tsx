@@ -53,12 +53,34 @@ const LoginPage: React.FC = () => {
   }, [dispatch]);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-    >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="max-w-md w-full space-y-8 bg-white rounded-2xl shadow-xl p-8"
+      >
+        {/* Header */}
+        <div className="text-center">
+          <motion.h1
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-3xl font-bold text-gray-900 mb-2"
+          >
+            Doctor Appointment
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="text-gray-600"
+          >
+            Professional Healthcare Management
+          </motion.p>
+        </div>
+
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
             Email Address
@@ -173,16 +195,17 @@ const LoginPage: React.FC = () => {
         </div>
       </motion.div>
 
-      {/* Tailwind Test Component */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.7 }}
-        className="mt-8"
-      >
-        <TailwindTest />
+        {/* Tailwind Test Component */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.7 }}
+          className="mt-8"
+        >
+          <TailwindTest />
+        </motion.div>
       </motion.div>
-    </motion.div>
+    </div>
   );
 };
 

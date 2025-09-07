@@ -9,6 +9,7 @@ import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { loginUser, clearError } from '../../store/slices/authSlice';
 import { LoginRequest } from '../../types';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
+import TailwindTest from '../../components/ui/TailwindTest';
 import { toast } from 'react-toastify';
 
 const schema = yup.object().shape({
@@ -170,6 +171,16 @@ const LoginPage: React.FC = () => {
           <p><strong>Admin:</strong> admin@hospital.com / admin123</p>
           <p><strong>Assistant:</strong> mahbubaligub192@gmail.com / 123456</p>
         </div>
+      </motion.div>
+
+      {/* Tailwind Test Component */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.7 }}
+        className="mt-8"
+      >
+        <TailwindTest />
       </motion.div>
     </motion.div>
   );

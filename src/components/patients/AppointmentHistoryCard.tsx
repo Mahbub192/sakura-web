@@ -114,7 +114,7 @@ const AppointmentHistoryCard: React.FC<AppointmentHistoryCardProps> = ({
         <div className="space-y-2">
           <div>
             <p className="text-xs text-gray-600">Reason for Visit:</p>
-            <p className="text-sm text-gray-900">{appointment.reasonForVisit}</p>
+            <p className="text-sm text-gray-900">{appointment.reasonForVisit || 'Not specified'}</p>
           </div>
           
           {appointment.notes && (

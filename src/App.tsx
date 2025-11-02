@@ -10,11 +10,13 @@ import DashboardLayout from './layouts/DashboardLayout';
 import AuthLayout from './layouts/AuthLayout';
 
 // Pages
+import HomePage from './pages/home/HomePage';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import DashboardPage from './pages/dashboard/DashboardPage';
 import AppointmentsPage from './pages/appointments/AppointmentsPage';
 import BookAppointmentPage from './pages/appointments/BookAppointmentPage';
+import PatientBookingPage from './pages/patients/PatientBookingPage';
 import DoctorsPage from './pages/doctors/DoctorsPage';
 import PatientsPage from './pages/patients/PatientsPage';
 import AdminPage from './pages/admin/AdminPage';
@@ -41,6 +43,8 @@ const AppContent: React.FC = () => {
     <Router>
       <Routes>
         {/* Public Routes */}
+        <Route path="/" element={<HomePage />} />
+        <Route path="/home" element={<HomePage />} />
         <Route path="/login" element={
           isAuthenticated ? <Navigate to="/dashboard" replace /> : 
           <AuthLayout><LoginPage /></AuthLayout>
@@ -49,7 +53,11 @@ const AppContent: React.FC = () => {
           isAuthenticated ? <Navigate to="/dashboard" replace /> : 
           <AuthLayout><RegisterPage /></AuthLayout>
         } />
-        <Route path="/book-appointment" element={<AuthLayout><BookAppointmentPage /></AuthLayout>} />
+        <Route path="/book-appointment" element={
+          isAuthenticated ? 
+          <DashboardLayout><PatientBookingPage /></DashboardLayout> : 
+          <AuthLayout><BookAppointmentPage /></AuthLayout>
+        } />
 
         {/* Protected Routes */}
         <Route path="/dashboard" element={
@@ -71,8 +79,14 @@ const AppContent: React.FC = () => {
         } />
         
         <Route path="/patients" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Doctor', 'Assistant']}>
+          <ProtectedRoute allowedRoles={['Admin', 'Doctor', 'Assistant', 'User']}>
             <DashboardLayout><PatientsPage /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/patients/book" element={
+          <ProtectedRoute allowedRoles={['User']}>
+            <DashboardLayout><PatientBookingPage /></DashboardLayout>
           </ProtectedRoute>
         } />
         

@@ -39,6 +39,8 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen, userRole
       { name: 'Appointments', href: '/appointments', icon: CalendarIcon, roles: ['Admin', 'Doctor', 'Assistant'] },
       { name: 'Doctors', href: '/doctors', icon: HeartIcon, roles: ['Admin', 'Doctor', 'Assistant'] },
       { name: 'Patients', href: '/patients', icon: UsersIcon, roles: ['Admin', 'Doctor', 'Assistant'] },
+      { name: 'My Appointments', href: '/patients', icon: CalendarIcon, roles: ['User'] },
+      { name: 'Book Appointment', href: '/patients/book', icon: CalendarIcon, roles: ['User'] },
       { name: 'Administration', href: '/admin', icon: CogIcon, roles: ['Admin'] },
     ];
 

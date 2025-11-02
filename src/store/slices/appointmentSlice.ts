@@ -62,9 +62,12 @@ export const createAppointment = createAsyncThunk(
 
 export const fetchTokenAppointments = createAsyncThunk(
   'appointments/fetchTokenAppointments',
-  async (doctorId: number | undefined = undefined, { rejectWithValue }) => {
+  async (filters: { doctorId?: number; clinicId?: number; date?: string } | undefined = undefined, { rejectWithValue }) => {
     try {
-      return await appointmentService.getTokenAppointments(doctorId);
+      const doctorId = filters?.doctorId;
+      const clinicId = filters?.clinicId;
+      const date = filters?.date;
+      return await appointmentService.getTokenAppointments(doctorId, clinicId, date);
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch bookings');
     }

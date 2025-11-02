@@ -40,8 +40,11 @@ export const appointmentService = {
   // Token Appointments (Patient Bookings)
   
   // Get all token appointments
-  async getTokenAppointments(doctorId?: number): Promise<TokenAppointment[]> {
-    const params = doctorId ? { doctorId } : {};
+  async getTokenAppointments(doctorId?: number, clinicId?: number, date?: string): Promise<TokenAppointment[]> {
+    const params: any = {};
+    if (doctorId) params.doctorId = doctorId;
+    if (clinicId) params.clinicId = clinicId;
+    if (date) params.date = date;
     const response = await api.get('/token-appointments', { params });
     return response.data;
   },

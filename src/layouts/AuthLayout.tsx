@@ -12,7 +12,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.3 }}
-        className="w-full max-w-md"
+        className="w-full max-w-5xl md:max-w-7xl mx-auto"
       >
         <div className="bg-white rounded-2xl shadow-medium p-8">
           <div className="text-center mb-8">

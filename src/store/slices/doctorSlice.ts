@@ -2,6 +2,23 @@ import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { Doctor, CreateDoctorRequest } from '../../types';
 import { doctorService } from '../../services/doctorService';
 
+export interface CreateMyDoctorProfileRequest {
+  name: string;
+  specialization: string;
+  experience?: number;
+  licenseNumber: string;
+  qualification: string;
+  bio?: string;
+  profileImage?: string;
+  consultationFee: number;
+  availableDays?: string[];
+  generalAvailableStart?: string;
+  generalAvailableEnd?: string;
+  defaultConsultationDuration?: number;
+  services?: string[];
+  contactInfo?: object;
+}
+
 interface DoctorState {
   doctors: Doctor[];
   selectedDoctor: Doctor | null;
@@ -87,6 +104,28 @@ export const deleteDoctor = createAsyncThunk(
       return id;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to delete doctor');
+    }
+  }
+);
+
+export const checkDoctorProfileExists = createAsyncThunk(
+  'doctors/checkProfileExists',
+  async (_, { rejectWithValue }) => {
+    try {
+      return await doctorService.checkProfileExists();
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to check profile');
+    }
+  }
+);
+
+export const createMyDoctorProfile = createAsyncThunk(
+  'doctors/createMyProfile',
+  async (profileData: CreateMyDoctorProfileRequest, { rejectWithValue }) => {
+    try {
+      return await doctorService.createMyProfile(profileData);
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to create profile');
     }
   }
 );
@@ -201,6 +240,31 @@ const doctorSlice = createSlice({
         state.doctors = state.doctors.filter(doctor => doctor.id !== action.payload);
       })
       .addCase(deleteDoctor.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      });
+
+    // Check Profile Exists
+    builder
+      .addCase(checkDoctorProfileExists.fulfilled, (state, action: PayloadAction<boolean>) => {
+        // Profile exists check result stored in selectedDoctor temporarily or we can add a new field
+      })
+      .addCase(checkDoctorProfileExists.rejected, (state, action) => {
+        state.error = action.payload as string;
+      });
+
+    // Create My Profile
+    builder
+      .addCase(createMyDoctorProfile.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(createMyDoctorProfile.fulfilled, (state, action: PayloadAction<Doctor>) => {
+        state.isLoading = false;
+        state.currentDoctorProfile = action.payload;
+        state.doctors.push(action.payload);
+      })
+      .addCase(createMyDoctorProfile.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
       });

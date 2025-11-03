@@ -161,9 +161,10 @@ const appointmentSlice = createSlice({
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(createAppointment.fulfilled, (state, action: PayloadAction<Appointment>) => {
+      .addCase(createAppointment.fulfilled, (state, action: PayloadAction<Appointment[]>) => {
         state.isLoading = false;
-        state.appointments.push(action.payload);
+        // Backend returns array of appointments, so push all of them
+        state.appointments.push(...action.payload);
       })
       .addCase(createAppointment.rejected, (state, action) => {
         state.isLoading = false;

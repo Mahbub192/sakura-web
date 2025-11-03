@@ -5,7 +5,7 @@ import * as yup from 'yup';
 import { motion } from 'framer-motion';
 import { useAppDispatch } from '../../hooks/redux';
 import { createAppointment } from '../../store/slices/appointmentSlice';
-import { CreateAppointmentRequest, Doctor, Clinic } from '../../types';
+import { CreateAppointmentRequest, Doctor, Clinic, Appointment } from '../../types';
 import Button from '../ui/Button';
 import { toast } from 'react-toastify';
 
@@ -20,7 +20,7 @@ const schema = yup.object().shape({
   clinicId: yup.number().required('Clinic is required'),
   date: yup.string().required('Date is required'),
   startTime: yup.string().required('Start time is required'),
-  endTime: yup.string().required('End time is required'),
+  endTime: yup.string().optional(), // Optional because it's calculated automatically
   duration: yup.number().min(15, 'Minimum 15 minutes').max(240, 'Maximum 240 minutes').required('Duration is required'),
   maxPatients: yup.number().min(1, 'At least 1 patient').max(50, 'Maximum 50 patients').required('Max patients is required'),
 });
@@ -39,11 +39,13 @@ const CreateAppointmentForm: React.FC<CreateAppointmentFormProps> = ({
     formState: { errors },
     reset,
     watch,
+    setValue,
   } = useForm<CreateAppointmentRequest>({
     resolver: yupResolver(schema) as any,
     defaultValues: {
       duration: 30,
       maxPatients: 1,
+      endTime: '',
     },
   });
 
@@ -60,36 +62,53 @@ const CreateAppointmentForm: React.FC<CreateAppointmentFormProps> = ({
       const endMins = endMinutes % 60;
       const endTime = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
       
-      // Update the form with calculated end time
+      // Update the form with calculated end time using setValue
+      setValue('endTime', endTime, { shouldValidate: false });
+      
+      // Also update the display input
       const endTimeInput = document.getElementById('endTime') as HTMLInputElement;
       if (endTimeInput) {
         endTimeInput.value = endTime;
       }
     }
-  }, [startTime, duration]);
+  }, [startTime, duration, setValue]);
 
   const onSubmit = async (data: CreateAppointmentRequest) => {
+    console.log('Form submitted!', data);
     setIsLoading(true);
     try {
-      // Calculate end time
-      const [hours, minutes] = data.startTime.split(':').map(Number);
-      const startMinutes = hours * 60 + minutes;
-      const endMinutes = startMinutes + data.duration;
-      const endHours = Math.floor(endMinutes / 60);
-      const endMins = endMinutes % 60;
-      const endTime = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
+      // Calculate end time if not already set
+      let endTime = data.endTime;
+      if (!endTime && data.startTime && data.duration) {
+        const [hours, minutes] = data.startTime.split(':').map(Number);
+        const startMinutes = hours * 60 + minutes;
+        const endMinutes = startMinutes + data.duration;
+        const endHours = Math.floor(endMinutes / 60);
+        const endMins = endMinutes % 60;
+        endTime = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
+      }
 
-      const appointmentData = {
+      const appointmentData: CreateAppointmentRequest = {
         ...data,
-        endTime,
+        endTime: endTime || '',
+        maxPatients: data.maxPatients || 1,
       };
-
-      await dispatch(createAppointment(appointmentData));
-      toast.success('Appointment slot created successfully');
-      reset();
-      onSuccess();
-    } catch (error) {
-      toast.error('Failed to create appointment slot');
+      console.log('appointmentData', appointmentData);
+      const result = await dispatch(createAppointment(appointmentData));
+      
+      if (createAppointment.fulfilled.match(result)) {
+        // Backend returns array of appointments
+        const createdSlots = result.payload as Appointment[];
+        toast.success(`Successfully created ${createdSlots.length} appointment slot(s)`);
+        reset();
+        onSuccess();
+      } else if (createAppointment.rejected.match(result)) {
+        const errorMessage = result.payload as string || 'Failed to create appointment slot';
+        toast.error(errorMessage);
+      }
+    } catch (error: any) {
+      console.error('Error creating appointment:', error);
+      toast.error(error?.message || 'Failed to create appointment slot');
     } finally {
       setIsLoading(false);
     }
@@ -210,11 +229,15 @@ const CreateAppointmentForm: React.FC<CreateAppointmentFormProps> = ({
             End Time (Calculated)
           </label>
           <input
+            {...register('endTime')}
             type="time"
             id="endTime"
             className="input-field bg-gray-50"
             readOnly
           />
+          {errors.endTime && (
+            <p className="mt-1 text-sm text-error-600">{errors.endTime.message}</p>
+          )}
         </div>
       </div>
 

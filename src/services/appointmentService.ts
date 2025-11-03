@@ -21,9 +21,32 @@ export const appointmentService = {
   },
 
   // Create new appointment slot
-  async createAppointment(appointmentData: CreateAppointmentRequest): Promise<Appointment> {
-    const response = await api.post('/appointments', appointmentData);
-    return response.data;
+  async createAppointment(appointmentData: CreateAppointmentRequest): Promise<Appointment[]> {
+    // Transform to match backend DTO format
+    const requestBody = {
+      clinicId: appointmentData.clinicId,
+      date: appointmentData.date,
+      startTime: appointmentData.startTime,
+      endTime: appointmentData.endTime,
+      slotDuration: appointmentData.duration,
+      patientPerSlot: appointmentData.maxPatients || 1,
+    };
+    
+    console.log('Sending request to:', '/doctors/dashboard/create-schedule');
+    console.log('Request body:', requestBody);
+    
+    try {
+      const response = await api.post('/doctors/dashboard/create-schedule', requestBody);
+      console.log('Response received:', response.data);
+      // Backend returns array of appointments
+      return response.data;
+    } catch (error: any) {
+      console.error('API Error:', error);
+      console.error('Response:', error.response?.data);
+      console.error('Status:', error.response?.status);
+      console.error('URL:', error.config?.url);
+      throw error;
+    }
   },
 
   // Update appointment status

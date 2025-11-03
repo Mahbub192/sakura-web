@@ -21,6 +21,9 @@ import DoctorsPage from './pages/doctors/DoctorsPage';
 import PatientsPage from './pages/patients/PatientsPage';
 import PatientsViewPage from './pages/patients/PatientsViewPage';
 import AdminPage from './pages/admin/AdminPage';
+import CreateDoctorProfilePage from './pages/profile/CreateDoctorProfilePage';
+import CreateAssistantProfilePage from './pages/profile/CreateAssistantProfilePage';
+import CreateUserProfilePage from './pages/profile/CreateUserProfilePage';
 
 // Components
 import LoadingSpinner from './components/ui/LoadingSpinner';
@@ -28,6 +31,7 @@ import ProtectedRoute from './components/common/ProtectedRoute';
 
 import 'react-toastify/dist/ReactToastify.css';
 import './index.css';
+import AdminUsersPage from './pages/admin/AdminUsersPage';
 
 const AppContent: React.FC = () => {
   const { isLoading, isAuthenticated } = useAuth();
@@ -92,9 +96,34 @@ const AppContent: React.FC = () => {
           </ProtectedRoute>
         } />
         
+        {/* Profile Creation Routes */}
+        <Route path="/profile/create-doctor" element={
+          <ProtectedRoute allowedRoles={['Doctor']}>
+            <DashboardLayout><CreateDoctorProfilePage /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/profile/create-assistant" element={
+          <ProtectedRoute allowedRoles={['Assistant']}>
+            <DashboardLayout><CreateAssistantProfilePage /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/profile/create-user" element={
+          <ProtectedRoute>
+            <DashboardLayout><CreateUserProfilePage /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+        
         <Route path="/admin" element={
           <ProtectedRoute allowedRoles={['Admin']}>
             <DashboardLayout><AdminPage /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/admin/users" element={
+          <ProtectedRoute allowedRoles={['Admin']}>
+            <DashboardLayout><AdminUsersPage /></DashboardLayout>
           </ProtectedRoute>
         } />
 

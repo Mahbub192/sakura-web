@@ -21,7 +21,26 @@ export const doctorService = {
     return response.data;
   },
 
-  // Create new doctor
+  // Check if doctor profile exists
+  async checkProfileExists(): Promise<boolean> {
+    try {
+      const response = await api.get('/doctors/check-profile');
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        return false;
+      }
+      throw error;
+    }
+  },
+
+  // Create my doctor profile (self-service)
+  async createMyProfile(profileData: any): Promise<Doctor> {
+    const response = await api.post('/doctors/my-profile', profileData);
+    return response.data;
+  },
+
+  // Create new doctor (Admin only)
   async createDoctor(doctorData: CreateDoctorRequest): Promise<Doctor> {
     const response = await api.post('/doctors', doctorData);
     return response.data;

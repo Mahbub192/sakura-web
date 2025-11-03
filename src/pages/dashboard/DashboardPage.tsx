@@ -18,10 +18,10 @@ import {
 import { useAuth } from '../../hooks/useAuth';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { fetchAppointments } from '../../store/slices/appointmentSlice';
-import { fetchDoctors } from '../../store/slices/doctorSlice';
+import { fetchDoctors, checkDoctorProfileExists } from '../../store/slices/doctorSlice';
 import { fetchMyAppointments, fetchUpcomingAppointments } from '../../store/slices/patientSlice';
+import { checkAssistantProfileExists } from '../../store/slices/assistantSlice';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
-import Button from '../../components/ui/Button';
 
 interface StatCardProps {
   title: string;
@@ -72,8 +72,34 @@ const DashboardPage: React.FC = () => {
   const isLoading = appointmentsLoading || doctorsLoading || patientsLoading;
 
   useEffect(() => {
-    fetchDashboardData();
+    checkProfileAndFetchData();
   }, [dispatch, isAdmin, isDoctor, isAssistant, isPatient]);
+
+  const checkProfileAndFetchData = async () => {
+    try {
+      if (isDoctor) {
+        const profileExists = await dispatch(checkDoctorProfileExists()).unwrap();
+        if (!profileExists) {
+          navigate('/profile/create-doctor');
+          return;
+        }
+      } else if (isAssistant) {
+        const profileExists = await dispatch(checkAssistantProfileExists()).unwrap();
+        if (!profileExists) {
+          navigate('/profile/create-assistant');
+          return;
+        }
+      }
+      fetchDashboardData();
+    } catch (error: any) {
+      // If profile doesn't exist, redirect to creation
+      if (isDoctor) {
+        navigate('/profile/create-doctor');
+      } else if (isAssistant) {
+        navigate('/profile/create-assistant');
+      }
+    }
+  };
 
   const fetchDashboardData = async () => {
     try {

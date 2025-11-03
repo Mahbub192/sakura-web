@@ -10,7 +10,6 @@ import {
   UsersIcon,
   ChartBarIcon,
   SparklesIcon,
-  CheckCircleIcon,
   ArrowRightIcon,
   EyeIcon,
   PlusCircleIcon,
@@ -37,24 +36,24 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, color, bg
   <motion.div
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
-    whileHover={{ scale: 1.03, y: -4 }}
+    whileHover={{ scale: 1.02, y: -2 }}
     transition={{ duration: 0.2 }}
     onClick={onClick}
-    className={`bg-white rounded-2xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-all duration-300 cursor-pointer ${onClick ? 'hover:border-primary-300' : ''}`}
+    className={`bg-white rounded-xl shadow-md p-4 border border-gray-100 hover:shadow-lg transition-all duration-300 cursor-pointer ${onClick ? 'hover:border-primary-300' : ''}`}
   >
     <div className="flex items-start justify-between">
       <div className="flex-1">
-        <p className="text-sm font-medium text-gray-600 mb-1">{title}</p>
-        <p className="text-3xl font-bold text-gray-900 mb-2">{value}</p>
+        <p className="text-xs font-medium text-gray-600 mb-1">{title}</p>
+        <p className="text-2xl font-bold text-gray-900 mb-1">{value}</p>
         {trend && (
-          <div className="flex items-center mt-2">
-            <TrendingUpIcon className="h-4 w-4 text-success-500 mr-1" />
-            <span className="text-sm font-medium text-success-600">{trend}</span>
+          <div className="flex items-center mt-1">
+            <TrendingUpIcon className="h-3 w-3 text-success-500 mr-1" />
+            <span className="text-xs font-medium text-success-600">{trend}</span>
           </div>
         )}
       </div>
-      <div className={`${bgColor} p-4 rounded-xl`}>
-        <Icon className={`h-7 w-7 ${color}`} />
+      <div className={`${bgColor} p-3 rounded-lg`}>
+        <Icon className={`h-5 w-5 ${color}`} />
       </div>
     </div>
   </motion.div>
@@ -104,7 +103,7 @@ const DashboardPage: React.FC = () => {
   const fetchDashboardData = async () => {
     try {
       setRefreshing(true);
-      if (isAdmin || isDoctor || isAssistant) {
+    if (isAdmin || isDoctor || isAssistant) {
         await Promise.all([
           dispatch(fetchAppointments({})).unwrap(),
           dispatch(fetchDoctors()).unwrap(),
@@ -254,12 +253,12 @@ const DashboardPage: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6 pb-8">
+    <div className="space-y-3 pb-2" style={{ maxHeight: 'calc(100vh - 120px)', overflowY: 'auto' }}>
       {/* Welcome Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden bg-gradient-to-br from-primary-600 via-primary-700 to-secondary-600 rounded-2xl p-8 text-white shadow-xl"
+        className="relative overflow-hidden bg-gradient-to-br from-primary-600 via-primary-700 to-secondary-600 rounded-xl p-5 text-white shadow-lg"
       >
         {/* Background Pattern */}
         <div className="absolute inset-0 opacity-10">
@@ -270,27 +269,27 @@ const DashboardPage: React.FC = () => {
 
         <div className="relative z-10 flex items-center justify-between">
           <div>
-            <div className="flex items-center gap-3 mb-4">
-              <SparklesIcon className="h-8 w-8" />
-              <h1 className="text-4xl font-bold">{getWelcomeMessage()}</h1>
+            <div className="flex items-center gap-2 mb-2">
+              <SparklesIcon className="h-5 w-5" />
+              <h1 className="text-2xl font-bold">{getWelcomeMessage()}</h1>
             </div>
-            <p className="text-xl text-primary-100">
-              {isAdmin && "Manage your healthcare system efficiently"}
-              {isDoctor && "Ready to help your patients today"}
-              {isAssistant && "Support your doctor and manage appointments"}
-              {!isAdmin && !isDoctor && !isAssistant && "Book your next appointment easily"}
-            </p>
+            <p className="text-sm text-primary-100">
+          {isAdmin && "Manage your healthcare system efficiently"}
+          {isDoctor && "Ready to help your patients today"}
+          {isAssistant && "Support your doctor and manage appointments"}
+          {!isAdmin && !isDoctor && !isAssistant && "Book your next appointment easily"}
+        </p>
           </div>
           <button
             onClick={fetchDashboardData}
             disabled={refreshing}
-            className="hidden md:flex items-center gap-2 bg-white/20 backdrop-blur-sm hover:bg-white/30 rounded-lg px-4 py-2 transition-colors disabled:opacity-50"
+            className="hidden md:flex items-center gap-1.5 bg-white/20 backdrop-blur-sm hover:bg-white/30 rounded-lg px-3 py-1.5 text-sm transition-colors disabled:opacity-50"
           >
             {refreshing ? (
               <LoadingSpinner size="sm" />
             ) : (
               <>
-                <ClockIcon className="h-5 w-5" />
+                <ClockIcon className="h-4 w-4" />
                 Refresh
               </>
             )}
@@ -299,13 +298,13 @@ const DashboardPage: React.FC = () => {
       </motion.div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {stats.map((stat, index) => (
           <motion.div
             key={stat.title}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
+            transition={{ delay: index * 0.05 }}
           >
             <StatCard {...stat} />
           </motion.div>
@@ -316,64 +315,80 @@ const DashboardPage: React.FC = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-        className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100"
+        transition={{ delay: 0.2 }}
+        className="bg-white rounded-xl shadow-md p-4 border border-gray-100"
       >
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <SparklesIcon className="h-6 w-6 text-primary-600" />
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+            <SparklesIcon className="h-4 w-4 text-primary-600" />
             Quick Actions
           </h2>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {isAdmin && (
             <>
               <motion.button
-                whileHover={{ scale: 1.02, y: -2 }}
+                whileHover={{ scale: 1.02, y: -1 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => navigate('/appointments')}
-                className="group p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl hover:from-blue-100 hover:to-blue-200 transition-all duration-300 text-left border border-blue-200"
+                className="group p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg hover:from-blue-100 hover:to-blue-200 transition-all duration-300 text-left border border-blue-200"
               >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="bg-blue-600 p-3 rounded-lg group-hover:scale-110 transition-transform">
-                    <CalendarIcon className="h-6 w-6 text-white" />
+                <div className="flex items-center justify-between mb-2">
+                  <div className="bg-blue-600 p-2 rounded-lg group-hover:scale-110 transition-transform">
+                    <CalendarIcon className="h-4 w-4 text-white" />
                   </div>
-                  <ArrowRightIcon className="h-5 w-5 text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <ArrowRightIcon className="h-4 w-4 text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
-                <h3 className="font-bold text-gray-900 mb-2 text-lg">Manage Appointments</h3>
-                <p className="text-sm text-gray-600">View and manage all appointments</p>
+                <h3 className="font-semibold text-gray-900 mb-1 text-sm">Manage Appointments</h3>
+                <p className="text-xs text-gray-600">View and manage all appointments</p>
               </motion.button>
               
               <motion.button
-                whileHover={{ scale: 1.02, y: -2 }}
+                whileHover={{ scale: 1.02, y: -1 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => navigate('/doctors')}
-                className="group p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-xl hover:from-green-100 hover:to-green-200 transition-all duration-300 text-left border border-green-200"
+                className="group p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-lg hover:from-green-100 hover:to-green-200 transition-all duration-300 text-left border border-green-200"
               >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="bg-green-600 p-3 rounded-lg group-hover:scale-110 transition-transform">
-                    <HeartIcon className="h-6 w-6 text-white" />
+                <div className="flex items-center justify-between mb-2">
+                  <div className="bg-green-600 p-2 rounded-lg group-hover:scale-110 transition-transform">
+                    <HeartIcon className="h-4 w-4 text-white" />
                   </div>
-                  <ArrowRightIcon className="h-5 w-5 text-green-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <ArrowRightIcon className="h-4 w-4 text-green-600 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
-                <h3 className="font-bold text-gray-900 mb-2 text-lg">Manage Doctors</h3>
-                <p className="text-sm text-gray-600">Add and manage doctors</p>
+                <h3 className="font-semibold text-gray-900 mb-1 text-sm">Manage Doctors</h3>
+                <p className="text-xs text-gray-600">Add and manage doctors</p>
               </motion.button>
               
               <motion.button
-                whileHover={{ scale: 1.02, y: -2 }}
+                whileHover={{ scale: 1.02, y: -1 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => navigate('/patients')}
-                className="group p-6 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl hover:from-purple-100 hover:to-purple-200 transition-all duration-300 text-left border border-purple-200"
+                className="group p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg hover:from-purple-100 hover:to-purple-200 transition-all duration-300 text-left border border-purple-200"
               >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="bg-purple-600 p-3 rounded-lg group-hover:scale-110 transition-transform">
-                    <ChartBarIcon className="h-6 w-6 text-white" />
+                <div className="flex items-center justify-between mb-2">
+                  <div className="bg-purple-600 p-2 rounded-lg group-hover:scale-110 transition-transform">
+                    <ChartBarIcon className="h-4 w-4 text-white" />
                   </div>
-                  <ArrowRightIcon className="h-5 w-5 text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <ArrowRightIcon className="h-4 w-4 text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
-                <h3 className="font-bold text-gray-900 mb-2 text-lg">View Reports</h3>
-                <p className="text-sm text-gray-600">System analytics and reports</p>
+                <h3 className="font-semibold text-gray-900 mb-1 text-sm">View Reports</h3>
+                <p className="text-xs text-gray-600">System analytics and reports</p>
+              </motion.button>
+              
+              <motion.button
+                whileHover={{ scale: 1.02, y: -1 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => navigate('/admin/users')}
+                className="group p-4 bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg hover:from-orange-100 hover:to-orange-200 transition-all duration-300 text-left border border-orange-200"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="bg-orange-600 p-2 rounded-lg group-hover:scale-110 transition-transform">
+                    <UsersIcon className="h-4 w-4 text-white" />
+                  </div>
+                  <ArrowRightIcon className="h-4 w-4 text-orange-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                <h3 className="font-semibold text-gray-900 mb-1 text-sm">Manage Users</h3>
+                <p className="text-xs text-gray-600">Create and manage accounts</p>
               </motion.button>
             </>
           )}
@@ -381,51 +396,51 @@ const DashboardPage: React.FC = () => {
           {(isDoctor || isAssistant) && (
             <>
               <motion.button
-                whileHover={{ scale: 1.02, y: -2 }}
+                whileHover={{ scale: 1.02, y: -1 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => navigate('/appointments')}
-                className="group p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl hover:from-blue-100 hover:to-blue-200 transition-all duration-300 text-left border border-blue-200"
+                className="group p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg hover:from-blue-100 hover:to-blue-200 transition-all duration-300 text-left border border-blue-200"
               >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="bg-blue-600 p-3 rounded-lg group-hover:scale-110 transition-transform">
-                    <CalendarIcon className="h-6 w-6 text-white" />
+                <div className="flex items-center justify-between mb-2">
+                  <div className="bg-blue-600 p-2 rounded-lg group-hover:scale-110 transition-transform">
+                    <CalendarIcon className="h-4 w-4 text-white" />
                   </div>
-                  <ArrowRightIcon className="h-5 w-5 text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <ArrowRightIcon className="h-4 w-4 text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
-                <h3 className="font-bold text-gray-900 mb-2 text-lg">Today's Schedule</h3>
-                <p className="text-sm text-gray-600">View today's appointments</p>
+                <h3 className="font-semibold text-gray-900 mb-1 text-sm">Today's Schedule</h3>
+                <p className="text-xs text-gray-600">View today's appointments</p>
               </motion.button>
               
               <motion.button
-                whileHover={{ scale: 1.02, y: -2 }}
+                whileHover={{ scale: 1.02, y: -1 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => navigate('/patients')}
-                className="group p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-xl hover:from-green-100 hover:to-green-200 transition-all duration-300 text-left border border-green-200"
+                className="group p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-lg hover:from-green-100 hover:to-green-200 transition-all duration-300 text-left border border-green-200"
               >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="bg-green-600 p-3 rounded-lg group-hover:scale-110 transition-transform">
-                    <UserGroupIcon className="h-6 w-6 text-white" />
+                <div className="flex items-center justify-between mb-2">
+                  <div className="bg-green-600 p-2 rounded-lg group-hover:scale-110 transition-transform">
+                    <UserGroupIcon className="h-4 w-4 text-white" />
                   </div>
-                  <ArrowRightIcon className="h-5 w-5 text-green-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <ArrowRightIcon className="h-4 w-4 text-green-600 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
-                <h3 className="font-bold text-gray-900 mb-2 text-lg">Patient List</h3>
-                <p className="text-sm text-gray-600">Manage patient appointments</p>
+                <h3 className="font-semibold text-gray-900 mb-1 text-sm">Patient List</h3>
+                <p className="text-xs text-gray-600">Manage patient appointments</p>
               </motion.button>
               
               <motion.button
-                whileHover={{ scale: 1.02, y: -2 }}
+                whileHover={{ scale: 1.02, y: -1 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => navigate('/appointments')}
-                className="group p-6 bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl hover:from-orange-100 hover:to-orange-200 transition-all duration-300 text-left border border-orange-200"
+                className="group p-4 bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg hover:from-orange-100 hover:to-orange-200 transition-all duration-300 text-left border border-orange-200"
               >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="bg-orange-600 p-3 rounded-lg group-hover:scale-110 transition-transform">
-                    <PlusCircleIcon className="h-6 w-6 text-white" />
+                <div className="flex items-center justify-between mb-2">
+                  <div className="bg-orange-600 p-2 rounded-lg group-hover:scale-110 transition-transform">
+                    <PlusCircleIcon className="h-4 w-4 text-white" />
                   </div>
-                  <ArrowRightIcon className="h-5 w-5 text-orange-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <ArrowRightIcon className="h-4 w-4 text-orange-600 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
-                <h3 className="font-bold text-gray-900 mb-2 text-lg">Create Slot</h3>
-                <p className="text-sm text-gray-600">Add new appointment slots</p>
+                <h3 className="font-semibold text-gray-900 mb-1 text-sm">Create Slot</h3>
+                <p className="text-xs text-gray-600">Add new appointment slots</p>
               </motion.button>
             </>
           )}
@@ -433,51 +448,51 @@ const DashboardPage: React.FC = () => {
           {isPatient && (
             <>
               <motion.button
-                whileHover={{ scale: 1.02, y: -2 }}
+                whileHover={{ scale: 1.02, y: -1 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => navigate('/patients/book')}
-                className="group p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl hover:from-blue-100 hover:to-blue-200 transition-all duration-300 text-left border border-blue-200"
+                className="group p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg hover:from-blue-100 hover:to-blue-200 transition-all duration-300 text-left border border-blue-200"
               >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="bg-blue-600 p-3 rounded-lg group-hover:scale-110 transition-transform">
-                    <CalendarIcon className="h-6 w-6 text-white" />
+                <div className="flex items-center justify-between mb-2">
+                  <div className="bg-blue-600 p-2 rounded-lg group-hover:scale-110 transition-transform">
+                    <CalendarIcon className="h-4 w-4 text-white" />
                   </div>
-                  <ArrowRightIcon className="h-5 w-5 text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <ArrowRightIcon className="h-4 w-4 text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
-                <h3 className="font-bold text-gray-900 mb-2 text-lg">Book Appointment</h3>
-                <p className="text-sm text-gray-600">Schedule your next visit</p>
+                <h3 className="font-semibold text-gray-900 mb-1 text-sm">Book Appointment</h3>
+                <p className="text-xs text-gray-600">Schedule your next visit</p>
               </motion.button>
               
               <motion.button
-                whileHover={{ scale: 1.02, y: -2 }}
+                whileHover={{ scale: 1.02, y: -1 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => navigate('/patients')}
-                className="group p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-xl hover:from-green-100 hover:to-green-200 transition-all duration-300 text-left border border-green-200"
+                className="group p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-lg hover:from-green-100 hover:to-green-200 transition-all duration-300 text-left border border-green-200"
               >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="bg-green-600 p-3 rounded-lg group-hover:scale-110 transition-transform">
-                    <EyeIcon className="h-6 w-6 text-white" />
+                <div className="flex items-center justify-between mb-2">
+                  <div className="bg-green-600 p-2 rounded-lg group-hover:scale-110 transition-transform">
+                    <EyeIcon className="h-4 w-4 text-white" />
                   </div>
-                  <ArrowRightIcon className="h-5 w-5 text-green-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <ArrowRightIcon className="h-4 w-4 text-green-600 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
-                <h3 className="font-bold text-gray-900 mb-2 text-lg">My Appointments</h3>
-                <p className="text-sm text-gray-600">View all my appointments</p>
+                <h3 className="font-semibold text-gray-900 mb-1 text-sm">My Appointments</h3>
+                <p className="text-xs text-gray-600">View all my appointments</p>
               </motion.button>
               
               <motion.button
-                whileHover={{ scale: 1.02, y: -2 }}
+                whileHover={{ scale: 1.02, y: -1 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => navigate('/book-appointment')}
-                className="group p-6 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl hover:from-purple-100 hover:to-purple-200 transition-all duration-300 text-left border border-purple-200"
+                className="group p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg hover:from-purple-100 hover:to-purple-200 transition-all duration-300 text-left border border-purple-200"
               >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="bg-purple-600 p-3 rounded-lg group-hover:scale-110 transition-transform">
-                    <HeartIcon className="h-6 w-6 text-white" />
+                <div className="flex items-center justify-between mb-2">
+                  <div className="bg-purple-600 p-2 rounded-lg group-hover:scale-110 transition-transform">
+                    <HeartIcon className="h-4 w-4 text-white" />
                   </div>
-                  <ArrowRightIcon className="h-5 w-5 text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <ArrowRightIcon className="h-4 w-4 text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
-                <h3 className="font-bold text-gray-900 mb-2 text-lg">Find Doctors</h3>
-                <p className="text-sm text-gray-600">Browse available doctors</p>
+                <h3 className="font-semibold text-gray-900 mb-1 text-sm">Find Doctors</h3>
+                <p className="text-xs text-gray-600">Browse available doctors</p>
               </motion.button>
             </>
           )}
@@ -485,35 +500,35 @@ const DashboardPage: React.FC = () => {
           {!isAdmin && !isDoctor && !isAssistant && !isPatient && (
             <>
               <motion.button
-                whileHover={{ scale: 1.02, y: -2 }}
+                whileHover={{ scale: 1.02, y: -1 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => navigate('/book-appointment')}
-                className="group p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl hover:from-blue-100 hover:to-blue-200 transition-all duration-300 text-left border border-blue-200"
+                className="group p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg hover:from-blue-100 hover:to-blue-200 transition-all duration-300 text-left border border-blue-200"
               >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="bg-blue-600 p-3 rounded-lg group-hover:scale-110 transition-transform">
-                    <CalendarIcon className="h-6 w-6 text-white" />
+                <div className="flex items-center justify-between mb-2">
+                  <div className="bg-blue-600 p-2 rounded-lg group-hover:scale-110 transition-transform">
+                    <CalendarIcon className="h-4 w-4 text-white" />
                   </div>
-                  <ArrowRightIcon className="h-5 w-5 text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <ArrowRightIcon className="h-4 w-4 text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
-                <h3 className="font-bold text-gray-900 mb-2 text-lg">Book Appointment</h3>
-                <p className="text-sm text-gray-600">Schedule your next visit</p>
+                <h3 className="font-semibold text-gray-900 mb-1 text-sm">Book Appointment</h3>
+                <p className="text-xs text-gray-600">Schedule your next visit</p>
               </motion.button>
               
               <motion.button
-                whileHover={{ scale: 1.02, y: -2 }}
+                whileHover={{ scale: 1.02, y: -1 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => navigate('/book-appointment')}
-                className="group p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-xl hover:from-green-100 hover:to-green-200 transition-all duration-300 text-left border border-green-200"
+                className="group p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-lg hover:from-green-100 hover:to-green-200 transition-all duration-300 text-left border border-green-200"
               >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="bg-green-600 p-3 rounded-lg group-hover:scale-110 transition-transform">
-                    <HeartIcon className="h-6 w-6 text-white" />
+                <div className="flex items-center justify-between mb-2">
+                  <div className="bg-green-600 p-2 rounded-lg group-hover:scale-110 transition-transform">
+                    <HeartIcon className="h-4 w-4 text-white" />
                   </div>
-                  <ArrowRightIcon className="h-5 w-5 text-green-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <ArrowRightIcon className="h-4 w-4 text-green-600 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
-                <h3 className="font-bold text-gray-900 mb-2 text-lg">Find Doctors</h3>
-                <p className="text-sm text-gray-600">Browse available doctors</p>
+                <h3 className="font-semibold text-gray-900 mb-1 text-sm">Find Doctors</h3>
+                <p className="text-xs text-gray-600">Browse available doctors</p>
               </motion.button>
             </>
           )}

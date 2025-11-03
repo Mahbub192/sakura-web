@@ -134,7 +134,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
         
         {/* Main content area with scrollable container */}
         <main 
-          className="flex-1 relative overflow-y-auto focus:outline-none"
+          className="flex-1 relative overflow-y-auto focus:outline-none max-h-screen"
           onScroll={(e) => {
             const target = e.target as HTMLElement;
             setIsScrolled(target.scrollTop > 10);

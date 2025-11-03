@@ -7,8 +7,6 @@ import {
   AcademicCapIcon,
   ClockIcon,
   CurrencyDollarIcon,
-  PencilIcon,
-  TrashIcon,
 } from '@heroicons/react/24/outline';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { useAuth } from '../../hooks/useAuth';
@@ -127,20 +125,21 @@ const DoctorsPage: React.FC = () => {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="space-y-6"
+      className="space-y-4"
     >
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Doctors Management</h1>
-          <p className="text-gray-600 mt-1">Manage doctor profiles and information</p>
+          <h1 className="text-xl font-bold text-gray-900">Doctors Management</h1>
+          <p className="text-sm text-gray-600 mt-0.5">Manage doctor profiles and information</p>
         </div>
-        <div className="mt-4 sm:mt-0 flex space-x-3">
+        <div className="mt-3 sm:mt-0 flex space-x-2">
           {isDoctor && (
             <Button
               variant="outline"
               onClick={() => setShowProfileModal(true)}
               icon={<UserIcon className="h-4 w-4" />}
+              className="text-sm px-3 py-1.5"
             >
               My Profile
             </Button>
@@ -150,6 +149,7 @@ const DoctorsPage: React.FC = () => {
               variant="primary"
               onClick={() => setShowCreateModal(true)}
               icon={<PlusIcon className="h-4 w-4" />}
+              className="text-sm px-3 py-1.5"
             >
               Add New Doctor
             </Button>
@@ -158,22 +158,22 @@ const DoctorsPage: React.FC = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {stats.map((stat, index) => (
           <motion.div
             key={stat.title}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-            className="bg-white rounded-xl shadow-soft p-6 border border-gray-200"
+            transition={{ delay: index * 0.05 }}
+            className="bg-white rounded-xl shadow-md p-4 border border-gray-200"
           >
             <div className="flex items-center">
-              <div className={`p-3 rounded-lg ${stat.color}`}>
-                <stat.icon className="h-6 w-6 text-white" />
+              <div className={`p-2.5 rounded-lg ${stat.color}`}>
+                <stat.icon className="h-5 w-5 text-white" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">{stat.title}</p>
-                <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+              <div className="ml-3">
+                <p className="text-xs font-medium text-gray-500">{stat.title}</p>
+                <p className="text-xl font-bold text-gray-900">{stat.value}</p>
               </div>
             </div>
           </motion.div>
@@ -181,26 +181,26 @@ const DoctorsPage: React.FC = () => {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl shadow-soft p-6 border border-gray-200">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0 lg:space-x-4">
+      <div className="bg-white rounded-xl shadow-md p-4 border border-gray-200">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-3 lg:space-y-0 lg:space-x-3">
           {/* Search */}
           <div className="relative flex-1 max-w-md">
-            <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
               placeholder="Search doctors..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 input-field"
+              className="pl-9 input-field text-sm"
             />
           </div>
 
           {/* Specialization Filter */}
-          <div className="flex space-x-4">
+          <div className="flex space-x-3">
             <select
               value={specializationFilter}
               onChange={(e) => setSpecializationFilter(e.target.value)}
-              className="input-field min-w-[160px]"
+              className="input-field min-w-[160px] text-sm"
             >
               <option value="">All Specializations</option>
               {specializations.map(spec => (
@@ -212,27 +212,27 @@ const DoctorsPage: React.FC = () => {
       </div>
 
       {/* Doctors Grid */}
-      <div className="bg-white rounded-xl shadow-soft border border-gray-200">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200">
+        <div className="p-4 border-b border-gray-200">
+          <h2 className="text-base font-semibold text-gray-900">
             Doctors ({filteredDoctors.length})
           </h2>
         </div>
-        <div className="p-6">
+        <div className="p-4">
           {isLoading ? (
             <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
-              <p className="text-gray-600 mt-2">Loading doctors...</p>
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600 mx-auto"></div>
+              <p className="text-sm text-gray-600 mt-2">Loading doctors...</p>
             </div>
           ) : filteredDoctors.length === 0 ? (
             <div className="text-center py-8">
-              <UserIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">No doctors found</p>
+              <UserIcon className="h-10 w-10 text-gray-400 mx-auto mb-3" />
+              <p className="text-sm text-gray-600">No doctors found</p>
               {isAdmin && (
                 <Button
                   variant="primary"
                   onClick={() => setShowCreateModal(true)}
-                  className="mt-4"
+                  className="mt-3 text-sm px-3 py-1.5"
                   icon={<PlusIcon className="h-4 w-4" />}
                 >
                   Add First Doctor
@@ -240,7 +240,7 @@ const DoctorsPage: React.FC = () => {
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredDoctors.map(doctor => (
                 <DoctorCard
                   key={doctor.id}

@@ -173,10 +173,10 @@ const AppointmentsPage: React.FC = () => {
       ...data.map(item => {
         if (viewMode === 'slots') {
           const apt = item as any;
-          return [`Slot`, `${apt.doctor.name},${apt.date},${apt.startTime}-${apt.endTime},${apt.status},${apt.clinic.locationName}`];
+          return [`Slot`, `${apt.doctor?.name || 'Unknown'},${apt.date},${apt.startTime}-${apt.endTime},${apt.status},${apt.clinic?.locationName || 'N/A'}`];
         } else {
           const booking = item as any;
-          return [`Booking`, `${booking.patientName},${booking.patientEmail},${booking.patientPhone},${booking.date},${booking.time},${booking.tokenNumber},${booking.status},${booking.doctor.name}`];
+          return [`Booking`, `${booking.patientName || 'Unknown'},${booking.patientEmail || ''},${booking.patientPhone || ''},${booking.date},${booking.time},${booking.tokenNumber},${booking.status},${booking.doctor?.name || 'Unknown'}`];
         }
       }),
     ].map(row => row.join(',')).join('\n');
@@ -195,10 +195,10 @@ const AppointmentsPage: React.FC = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="space-y-6"
+        className="space-y-4"
       >
         {/* Enhanced Header */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-primary-600 via-primary-700 to-secondary-600 rounded-2xl p-8 text-white shadow-xl">
+        <div className="relative overflow-hidden bg-gradient-to-br from-primary-600 via-primary-700 to-secondary-600 rounded-xl p-5 text-white shadow-lg">
           {/* Background Pattern */}
           <div className="absolute inset-0 opacity-10">
             <div className="absolute inset-0" style={{
@@ -208,40 +208,40 @@ const AppointmentsPage: React.FC = () => {
 
           <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <div className="flex items-center gap-3 mb-4">
-                <SparklesIcon className="h-8 w-8" />
-                <h1 className="text-4xl font-bold">Appointments Management</h1>
+              <div className="flex items-center gap-2 mb-2">
+                <SparklesIcon className="h-5 w-5" />
+                <h1 className="text-2xl font-bold">Appointments Management</h1>
               </div>
-              <p className="text-xl text-primary-100">Manage appointment slots and patient bookings efficiently</p>
+              <p className="text-sm text-primary-100">Manage appointment slots and patient bookings efficiently</p>
             </div>
-            <div className="mt-6 sm:mt-0 flex flex-wrap gap-3">
+            <div className="mt-4 sm:mt-0 flex flex-wrap gap-2">
               <button
                 onClick={fetchAllData}
                 disabled={refreshing}
-                className="flex items-center gap-2 bg-white/20 backdrop-blur-sm hover:bg-white/30 rounded-lg px-4 py-2 transition-colors disabled:opacity-50"
+                className="flex items-center gap-1.5 bg-white/20 backdrop-blur-sm hover:bg-white/30 rounded-lg px-3 py-1.5 text-sm transition-colors disabled:opacity-50"
               >
                 {refreshing ? (
                   <LoadingSpinner size="sm" />
                 ) : (
-                  <ArrowPathIcon className="h-5 w-5" />
+                  <ArrowPathIcon className="h-4 w-4" />
                 )}
                 Refresh
               </button>
               <Button
                 variant={showCalendarView ? 'primary' : 'outline'}
                 onClick={() => setShowCalendarView(!showCalendarView)}
-                className="bg-white/20 backdrop-blur-sm hover:bg-white/30 border-white/30 text-white"
+                className="bg-white/20 backdrop-blur-sm hover:bg-white/30 border-white/30 text-white text-sm px-3 py-1.5"
               >
-                <CalendarIcon className="h-5 w-5 mr-2" />
+                <CalendarIcon className="h-4 w-4 mr-1.5" />
                 Calendar View
               </Button>
               {(isAdmin || isDoctor) && (
                 <Button
                   variant="primary"
                   onClick={() => setShowCreateModal(true)}
-                  className="bg-white text-primary-600 hover:bg-gray-50"
+                  className="bg-white text-primary-600 hover:bg-gray-50 text-sm px-3 py-1.5"
                 >
-                  <PlusIcon className="h-5 w-5 mr-2" />
+                  <PlusIcon className="h-4 w-4 mr-1.5" />
                   Create Slot
                 </Button>
               )}
@@ -250,48 +250,48 @@ const AppointmentsPage: React.FC = () => {
         </div>
 
         {/* Enhanced Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {stats.map((stat, index) => (
             <motion.div
               key={stat.title}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              whileHover={{ scale: 1.03, y: -4 }}
-              className="group relative bg-white rounded-2xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-all duration-300 overflow-hidden"
+              transition={{ delay: index * 0.05 }}
+              whileHover={{ scale: 1.02, y: -2 }}
+              className="group relative bg-white rounded-xl shadow-md p-4 border border-gray-100 hover:shadow-lg transition-all duration-300 overflow-hidden"
             >
               {/* Gradient Background */}
-              <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${stat.color} opacity-5 rounded-full -mr-16 -mt-16`}></div>
+              <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${stat.color} opacity-5 rounded-full -mr-12 -mt-12`}></div>
               
               <div className="relative z-10">
-                <div className="flex items-start justify-between mb-4">
-                  <div className={`p-4 rounded-2xl bg-gradient-to-br ${stat.color} shadow-lg`}>
-                    <stat.icon className="h-7 w-7 text-white" />
+                <div className="flex items-start justify-between mb-2">
+                  <div className={`p-2.5 rounded-lg bg-gradient-to-br ${stat.color} shadow-md`}>
+                    <stat.icon className="h-5 w-5 text-white" />
                   </div>
-                  <div className={`${stat.bg} px-3 py-1 rounded-full`}>
+                  <div className={`${stat.bg} px-2 py-0.5 rounded-full`}>
                     <span className={`text-xs font-semibold ${stat.textColor}`}>
                       {stat.subtitle}
                     </span>
                   </div>
                 </div>
-                <h3 className="text-sm font-medium text-gray-600 mb-1">{stat.title}</h3>
-                <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
+                <h3 className="text-xs font-medium text-gray-600 mb-1">{stat.title}</h3>
+                <p className="text-xl font-bold text-gray-900">{stat.value}</p>
               </div>
             </motion.div>
           ))}
         </div>
 
         {/* Enhanced Filters */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
-          <div className="flex items-center gap-2 mb-4">
-            <FunnelIcon className="h-6 w-6 text-primary-600" />
-            <h3 className="text-xl font-bold text-gray-900">Filters & Search</h3>
+        <div className="bg-white rounded-xl shadow-md p-4 border border-gray-200">
+          <div className="flex items-center gap-2 mb-3">
+            <FunnelIcon className="h-4 w-4 text-primary-600" />
+            <h3 className="text-lg font-bold text-gray-900">Filters & Search</h3>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-3">
             {/* Search */}
             <div className="relative">
-              <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
                 type="text"
                 placeholder="Search by name, email, phone..."
@@ -337,11 +337,11 @@ const AppointmentsPage: React.FC = () => {
 
             {/* Location Filter */}
             <div className="relative">
-              <MapPinIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none z-10" />
+              <MapPinIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none z-10" />
               <select
                 value={locationFilter}
                 onChange={(e) => setLocationFilter(e.target.value ? Number(e.target.value) : '')}
-                className="pl-10 input-field appearance-none bg-white pr-8"
+                className="pl-9 input-field appearance-none bg-white pr-8"
               >
                 <option value="">All Locations</option>
                 {clinics.map(clinic => (
@@ -354,12 +354,12 @@ const AppointmentsPage: React.FC = () => {
 
             {/* Date Filter */}
             <div className="relative">
-              <CalendarIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+              <CalendarIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
               <input
                 type="date"
                 value={dateFilter}
                 onChange={(e) => setDateFilter(e.target.value)}
-                className="pl-10 input-field"
+                className="pl-9 input-field"
               />
             </div>
 
@@ -373,47 +373,47 @@ const AppointmentsPage: React.FC = () => {
                   setDateFilter('');
                   setSearchTerm('');
                 }}
-                className="flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700"
+                className="flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700"
               >
-                <XCircleIcon className="h-5 w-5" />
+                <XCircleIcon className="h-4 w-4" />
                 Clear All
               </button>
             )}
           </div>
 
           {/* View Mode Toggle */}
-          <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+          <div className="flex items-center justify-between pt-3 border-t border-gray-200">
             <div className="flex gap-2">
               <button
                 onClick={() => setViewMode('slots')}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                className={`px-3 py-1.5 text-sm rounded-lg font-medium transition-all ${
                   viewMode === 'slots'
-                    ? 'bg-primary-600 text-white shadow-lg'
+                    ? 'bg-primary-600 text-white shadow-md'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                <CalendarIcon className="h-5 w-5 inline mr-2" />
+                <CalendarIcon className="h-4 w-4 inline mr-1.5" />
                 Appointment Slots
               </button>
               <button
                 onClick={() => setViewMode('bookings')}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                className={`px-3 py-1.5 text-sm rounded-lg font-medium transition-all ${
                   viewMode === 'bookings'
-                    ? 'bg-primary-600 text-white shadow-lg'
+                    ? 'bg-primary-600 text-white shadow-md'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                <UserGroupIcon className="h-5 w-5 inline mr-2" />
+                <UserGroupIcon className="h-4 w-4 inline mr-1.5" />
                 Patient Bookings
               </button>
             </div>
             <div className="flex gap-2">
               <button
                 onClick={handleExport}
-                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700"
                 title="Export to CSV"
               >
-                <ArrowDownTrayIcon className="h-5 w-5" />
+                <ArrowDownTrayIcon className="h-4 w-4" />
                 Export
               </button>
             </div>
@@ -422,24 +422,24 @@ const AppointmentsPage: React.FC = () => {
 
         {/* Enhanced Calendar View */}
         {showCalendarView && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="lg:col-span-2 bg-white rounded-xl shadow-md p-4 border border-gray-200">
               <Calendar
                 selectedDate={selectedDate}
                 onDateSelect={setSelectedDate}
                 appointments={calendarAppointments}
               />
             </div>
-            <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
-              <div className="mb-6">
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">
+            <div className="bg-white rounded-xl shadow-md p-4 border border-gray-200">
+              <div className="mb-4">
+                <h3 className="text-base font-bold text-gray-900 mb-1">
                   {format(selectedDate, 'MMMM d, yyyy')}
                 </h3>
-                <p className="text-sm text-gray-600">
+                <p className="text-xs text-gray-600">
                   {appointments.filter(apt => apt.date === format(selectedDate, 'yyyy-MM-dd')).length} appointments scheduled
                 </p>
               </div>
-              <div className="space-y-3 max-h-[600px] overflow-y-auto">
+              <div className="space-y-2 max-h-[500px] overflow-y-auto">
                 {appointments
                   .filter(apt => apt.date === format(selectedDate, 'yyyy-MM-dd'))
                   .map(apt => (
@@ -447,41 +447,41 @@ const AppointmentsPage: React.FC = () => {
                       key={apt.id}
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
-                      className="p-4 bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-xl hover:shadow-md transition-shadow"
+                      className="p-3 bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
                     >
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex-1">
-                          <div className="font-semibold text-gray-900">Dr. {apt.doctor.name}</div>
-                          <div className="text-sm text-gray-600 mt-1">{apt.doctor.specialization}</div>
+                          <div className="text-sm font-semibold text-gray-900">Dr. {apt.doctor?.name || 'Unknown'}</div>
+                          <div className="text-xs text-gray-600 mt-0.5">{apt.doctor?.specialization || ''}</div>
                         </div>
-                        <span className={`badge ${
-                          apt.status === 'Available' ? 'badge-success' :
-                          apt.status === 'Booked' ? 'badge-warning' :
-                          'badge-error'
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                          apt.status === 'Available' ? 'bg-green-100 text-green-800' :
+                          apt.status === 'Booked' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-red-100 text-red-800'
                         }`}>
                           {apt.status}
                         </span>
                       </div>
-                      <div className="space-y-1 text-sm text-gray-600">
-                        <div className="flex items-center gap-2">
-                          <ClockIcon className="h-4 w-4" />
+                      <div className="space-y-1 text-xs text-gray-600">
+                        <div className="flex items-center gap-1.5">
+                          <ClockIcon className="h-3.5 w-3.5" />
                           <span>{apt.startTime} - {apt.endTime}</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <MapPinIcon className="h-4 w-4" />
-                          <span>{apt.clinic.locationName}</span>
+                        <div className="flex items-center gap-1.5">
+                          <MapPinIcon className="h-3.5 w-3.5" />
+                          <span className="truncate">{apt.clinic?.locationName || 'N/A'}</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <UserGroupIcon className="h-4 w-4" />
+                        <div className="flex items-center gap-1.5">
+                          <UserGroupIcon className="h-3.5 w-3.5" />
                           <span>{apt.currentBookings}/{apt.maxPatients} patients</span>
                         </div>
                       </div>
                     </motion.div>
                   ))}
                 {appointments.filter(apt => apt.date === format(selectedDate, 'yyyy-MM-dd')).length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    <CalendarIcon className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <p>No appointments on this date</p>
+                  <div className="text-center py-6 text-gray-500">
+                    <CalendarIcon className="h-10 w-10 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No appointments on this date</p>
                   </div>
                 )}
               </div>
@@ -491,31 +491,31 @@ const AppointmentsPage: React.FC = () => {
 
         {/* Appointment Slots */}
         {!showCalendarView && viewMode === 'slots' && (
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-            <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-secondary-50">
+          <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+            <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-secondary-50">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <CalendarIcon className="h-6 w-6 text-primary-600" />
-                  <h2 className="text-xl font-bold text-gray-900">
+                <div className="flex items-center gap-2">
+                  <CalendarIcon className="h-5 w-5 text-primary-600" />
+                  <h2 className="text-lg font-bold text-gray-900">
                     Appointment Slots
-                    <span className="ml-3 text-lg font-semibold text-primary-600">
+                    <span className="ml-2 text-base font-semibold text-primary-600">
                       ({filteredAppointments.length})
                     </span>
                   </h2>
                 </div>
               </div>
             </div>
-            <div className="p-6">
+            <div className="p-4">
               {isLoading ? (
-                <div className="text-center py-12">
-                  <LoadingSpinner size="lg" />
-                  <p className="text-gray-600 mt-4">Loading appointments...</p>
+                <div className="text-center py-8">
+                  <LoadingSpinner size="md" />
+                  <p className="text-sm text-gray-600 mt-3">Loading appointments...</p>
                 </div>
               ) : filteredAppointments.length === 0 ? (
-                <div className="text-center py-12">
-                  <CalendarIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">No appointment slots found</h3>
-                  <p className="text-gray-600">
+                <div className="text-center py-8">
+                  <CalendarIcon className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                  <h3 className="text-lg font-semibold text-gray-900 mb-1">No appointment slots found</h3>
+                  <p className="text-sm text-gray-600">
                     {searchTerm || statusFilter !== 'all' || doctorFilter !== 'all' || locationFilter || dateFilter
                       ? 'Try adjusting your filters'
                       : 'Create your first appointment slot to get started'
@@ -523,7 +523,7 @@ const AppointmentsPage: React.FC = () => {
                   </p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {filteredAppointments.map((appointment, index) => (
                     <motion.div
                       key={appointment.id}
@@ -546,31 +546,31 @@ const AppointmentsPage: React.FC = () => {
 
         {/* Enhanced Patient Bookings */}
         {!showCalendarView && viewMode === 'bookings' && (
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-            <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-secondary-50 to-primary-50">
+          <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+            <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-secondary-50 to-primary-50">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <UserGroupIcon className="h-6 w-6 text-secondary-600" />
-                  <h2 className="text-xl font-bold text-gray-900">
+                <div className="flex items-center gap-2">
+                  <UserGroupIcon className="h-5 w-5 text-secondary-600" />
+                  <h2 className="text-lg font-bold text-gray-900">
                     Patient Bookings
-                    <span className="ml-3 text-lg font-semibold text-secondary-600">
+                    <span className="ml-2 text-base font-semibold text-secondary-600">
                       ({filteredTokenAppointments.length})
                     </span>
                   </h2>
                 </div>
               </div>
             </div>
-            <div className="p-6">
+            <div className="p-4">
               {isLoading ? (
-                <div className="text-center py-12">
-                  <LoadingSpinner size="lg" />
-                  <p className="text-gray-600 mt-4">Loading patient bookings...</p>
+                <div className="text-center py-8">
+                  <LoadingSpinner size="md" />
+                  <p className="text-sm text-gray-600 mt-3">Loading patient bookings...</p>
                 </div>
               ) : filteredTokenAppointments.length === 0 ? (
-                <div className="text-center py-12">
-                  <UserGroupIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">No patient bookings found</h3>
-                  <p className="text-gray-600">
+                <div className="text-center py-8">
+                  <UserGroupIcon className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                  <h3 className="text-lg font-semibold text-gray-900 mb-1">No patient bookings found</h3>
+                  <p className="text-sm text-gray-600">
                     {searchTerm || statusFilter !== 'all' || doctorFilter !== 'all' || locationFilter || dateFilter
                       ? 'Try adjusting your filters'
                       : 'No bookings available yet'
@@ -578,26 +578,26 @@ const AppointmentsPage: React.FC = () => {
                   </p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   {filteredTokenAppointments.map((booking, index) => (
                     <motion.div
                       key={booking.id}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.05 }}
-                      className="group bg-white border-2 border-gray-200 rounded-2xl p-6 hover:border-primary-300 hover:shadow-xl transition-all duration-300"
+                      className="group bg-white border-2 border-gray-200 rounded-xl p-4 hover:border-primary-300 hover:shadow-lg transition-all duration-300"
                     >
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-center gap-4">
-                          <div className="w-14 h-14 bg-gradient-to-br from-primary-400 to-secondary-400 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg">
-                            {booking.patientName.charAt(0).toUpperCase()}
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 bg-gradient-to-br from-primary-400 to-secondary-400 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md">
+                            {booking.patientName?.charAt(0).toUpperCase() || '?'}
                           </div>
                           <div>
-                            <h3 className="text-lg font-bold text-gray-900">{booking.patientName}</h3>
-                            <p className="text-sm text-gray-600">{booking.patientEmail}</p>
+                            <h3 className="text-base font-bold text-gray-900">{booking.patientName || 'Unknown'}</h3>
+                            <p className="text-xs text-gray-600">{booking.patientEmail || ''}</p>
                           </div>
                         </div>
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
                           booking.status === 'Confirmed' ? 'bg-green-100 text-green-800' :
                           booking.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
                           booking.status === 'Completed' ? 'bg-blue-100 text-blue-800' :
@@ -607,43 +607,43 @@ const AppointmentsPage: React.FC = () => {
                         </span>
                       </div>
                       
-                      <div className="space-y-3 mb-4">
-                        <div className="grid grid-cols-2 gap-3 text-sm">
-                          <div className="flex items-center gap-2 text-gray-600">
-                            <ClockIcon className="h-4 w-4 text-primary-600" />
+                      <div className="space-y-2 mb-3">
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div className="flex items-center gap-1.5 text-gray-600">
+                            <ClockIcon className="h-3.5 w-3.5 text-primary-600" />
                             <span className="font-medium">Token:</span>
                             <span className="font-bold text-primary-600">{booking.tokenNumber}</span>
                           </div>
-                          <div className="flex items-center gap-2 text-gray-600">
-                            <CalendarIcon className="h-4 w-4 text-primary-600" />
-                            <span>{format(new Date(booking.date), 'MMM dd, yyyy')} at {booking.time}</span>
+                          <div className="flex items-center gap-1.5 text-gray-600">
+                            <CalendarIcon className="h-3.5 w-3.5 text-primary-600" />
+                            <span className="truncate">{format(new Date(booking.date), 'MMM dd, yyyy')} at {booking.time}</span>
                           </div>
-                          <div className="flex items-center gap-2 text-gray-600">
-                            <UserGroupIcon className="h-4 w-4 text-primary-600" />
-                            <span>Dr. {booking.doctor.name}</span>
+                          <div className="flex items-center gap-1.5 text-gray-600">
+                            <UserGroupIcon className="h-3.5 w-3.5 text-primary-600" />
+                            <span className="truncate">Dr. {booking.doctor?.name || 'Unknown'}</span>
                           </div>
                           {booking.appointment?.clinic && (
-                            <div className="flex items-center gap-2 text-gray-600">
-                              <MapPinIcon className="h-4 w-4 text-primary-600" />
+                            <div className="flex items-center gap-1.5 text-gray-600">
+                              <MapPinIcon className="h-3.5 w-3.5 text-primary-600" />
                               <span className="truncate">{booking.appointment.clinic.locationName}</span>
                             </div>
                           )}
                         </div>
                         {booking.reasonForVisit && (
-                          <div className="p-3 bg-gray-50 rounded-lg">
-                            <p className="text-xs font-medium text-gray-500 mb-1">Reason for Visit</p>
-                            <p className="text-sm text-gray-700">{booking.reasonForVisit}</p>
+                          <div className="p-2 bg-gray-50 rounded-lg">
+                            <p className="text-xs font-medium text-gray-500 mb-0.5">Reason for Visit</p>
+                            <p className="text-xs text-gray-700">{booking.reasonForVisit}</p>
                           </div>
                         )}
                       </div>
 
                       {(isAdmin || isDoctor || isAssistant) && (
-                        <div className="pt-4 border-t border-gray-200">
-                          <label className="block text-xs font-medium text-gray-700 mb-2">Update Status:</label>
+                        <div className="pt-3 border-t border-gray-200">
+                          <label className="block text-xs font-medium text-gray-700 mb-1.5">Update Status:</label>
                           <select
                             value={booking.status}
                             onChange={(e) => handleStatusUpdate(booking.id, e.target.value, true)}
-                            className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            className="w-full text-xs border border-gray-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary-500"
                           >
                             <option value="Pending">Pending</option>
                             <option value="Confirmed">Confirmed</option>

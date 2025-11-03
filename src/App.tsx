@@ -19,6 +19,7 @@ import BookAppointmentPage from './pages/appointments/BookAppointmentPage';
 import PatientBookingPage from './pages/patients/PatientBookingPage';
 import DoctorsPage from './pages/doctors/DoctorsPage';
 import PatientsPage from './pages/patients/PatientsPage';
+import PatientsViewPage from './pages/patients/PatientsViewPage';
 import AdminPage from './pages/admin/AdminPage';
 
 // Components
@@ -58,6 +59,7 @@ const AppContent: React.FC = () => {
           <DashboardLayout><PatientBookingPage /></DashboardLayout> : 
           <AuthLayout><BookAppointmentPage /></AuthLayout>
         } />
+        <Route path="/patients/view" element={<PatientsViewPage />} />
 
         {/* Protected Routes */}
         <Route path="/dashboard" element={

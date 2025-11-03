@@ -193,14 +193,12 @@ const HomePage: React.FC = () => {
                   Doctors
                 </Link>
               )}
-              {isAuthenticated && (
-                <Link
-                  to="/patients"
-                  className="text-gray-700 hover:text-primary-600 font-medium transition-colors"
-                >
-                  Patients
-                </Link>
-              )}
+              <Link
+                to="/patients/view"
+                className="text-gray-700 hover:text-primary-600 font-medium transition-colors"
+              >
+                Patients
+              </Link>
               <a
                 href="#services"
                 onClick={(e) => {
@@ -305,15 +303,13 @@ const HomePage: React.FC = () => {
                   Doctors
                 </Link>
               )}
-              {isAuthenticated && (
-                <Link
-                  to="/patients"
-                  className="block px-4 py-2 text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Patients
-                </Link>
-              )}
+              <Link
+                to="/patients/view"
+                className="block px-4 py-2 text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Patients
+              </Link>
               <a
                 href="#services"
                 onClick={(e) => {

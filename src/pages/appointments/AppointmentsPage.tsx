@@ -87,21 +87,27 @@ const AppointmentsPage: React.FC = () => {
   };
 
   const filteredAppointments = appointments.filter(apt => {
-    const matchesSearch = apt.doctor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         apt.clinic.locationName.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || apt.status.toLowerCase() === statusFilter.toLowerCase();
-    const matchesDoctor = doctorFilter === 'all' || apt.doctorId.toString() === doctorFilter;
+    const doctorName = apt.doctor?.name || '';
+    const clinicLocation = apt.clinic?.locationName || '';
+    const matchesSearch = doctorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         clinicLocation.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || apt.status?.toLowerCase() === statusFilter.toLowerCase();
+    const matchesDoctor = doctorFilter === 'all' || apt.doctorId?.toString() === doctorFilter;
     const matchesLocation = !locationFilter || apt.clinicId === Number(locationFilter);
     const matchesDate = !dateFilter || apt.date === dateFilter;
     return matchesSearch && matchesStatus && matchesDoctor && matchesLocation && matchesDate;
   });
 
   const filteredTokenAppointments = tokenAppointments.filter(apt => {
-    const matchesSearch = apt.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         apt.doctor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         apt.patientEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         apt.patientPhone.includes(searchTerm);
-    const matchesStatus = statusFilter === 'all' || apt.status.toLowerCase() === statusFilter.toLowerCase();
+    const doctorName = apt.doctor?.name || '';
+    const patientName = apt.patientName || '';
+    const patientEmail = apt.patientEmail || '';
+    const patientPhone = apt.patientPhone || '';
+    const matchesSearch = patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         doctorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         patientEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         patientPhone.includes(searchTerm);
+    const matchesStatus = statusFilter === 'all' || apt.status?.toLowerCase() === statusFilter.toLowerCase();
     const matchesDoctor = doctorFilter === 'all' || apt.doctorId.toString() === doctorFilter;
     const matchesLocation = !locationFilter || apt.appointment?.clinicId === Number(locationFilter);
     const matchesDate = !dateFilter || apt.date === dateFilter;

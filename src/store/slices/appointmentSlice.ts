@@ -40,7 +40,7 @@ export const fetchAppointments = createAsyncThunk(
 
 export const fetchAvailableSlots = createAsyncThunk(
   'appointments/fetchAvailableSlots',
-  async (filters: { doctorId?: number; date?: string } | undefined = undefined, { rejectWithValue }) => {
+  async (filters: { doctorId?: number; date?: string; clinicId?: number } | undefined = undefined, { rejectWithValue }) => {
     try {
       return await appointmentService.getAvailableSlots(filters);
     } catch (error: any) {
@@ -51,9 +51,14 @@ export const fetchAvailableSlots = createAsyncThunk(
 
 export const createAppointment = createAsyncThunk(
   'appointments/createAppointment',
-  async (appointmentData: CreateAppointmentRequest, { rejectWithValue }) => {
+  async (appointmentData: CreateAppointmentRequest, { rejectWithValue, getState }) => {
     try {
-      return await appointmentService.createAppointment(appointmentData);
+      // Get user role from auth state
+      const state = getState() as any;
+      const user = state.auth?.user;
+      const isDoctor = user?.role === 'Doctor';
+      
+      return await appointmentService.createAppointment(appointmentData, isDoctor);
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to create appointment');
     }

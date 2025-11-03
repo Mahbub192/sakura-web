@@ -4,6 +4,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { motion } from 'framer-motion';
 import { useAppDispatch } from '../../hooks/redux';
+import { useAuth } from '../../hooks/useAuth';
 import { createAppointment } from '../../store/slices/appointmentSlice';
 import { CreateAppointmentRequest, Doctor, Clinic, Appointment } from '../../types';
 import Button from '../ui/Button';
@@ -15,15 +16,27 @@ interface CreateAppointmentFormProps {
   clinics: Clinic[];
 }
 
-const schema = yup.object().shape({
-  doctorId: yup.number().required('Doctor is required'),
-  clinicId: yup.number().required('Clinic is required'),
-  date: yup.string().required('Date is required'),
-  startTime: yup.string().required('Start time is required'),
-  endTime: yup.string().optional(), // Optional because it's calculated automatically
-  duration: yup.number().min(15, 'Minimum 15 minutes').max(240, 'Maximum 240 minutes').required('Duration is required'),
-  maxPatients: yup.number().min(1, 'At least 1 patient').max(50, 'Maximum 50 patients').required('Max patients is required'),
-});
+// Dynamic schema based on user role
+const createSchema = (isDoctor: boolean) => {
+  const baseSchema = {
+    clinicId: yup.number().required('Clinic is required'),
+    date: yup.string().required('Date is required'),
+    startTime: yup.string().required('Start time is required'),
+    endTime: yup.string().optional(), // Optional because it's calculated automatically
+    duration: yup.number().min(15, 'Minimum 15 minutes').max(240, 'Maximum 240 minutes').required('Duration is required'),
+    maxPatients: yup.number().min(1, 'At least 1 patient').max(50, 'Maximum 50 patients').required('Max patients is required'),
+  };
+
+  // Doctor ID only required for admin
+  if (!isDoctor) {
+    return yup.object().shape({
+      doctorId: yup.number().required('Doctor is required'),
+      ...baseSchema,
+    });
+  }
+
+  return yup.object().shape(baseSchema);
+};
 
 const CreateAppointmentForm: React.FC<CreateAppointmentFormProps> = ({
   onSuccess,
@@ -31,7 +44,10 @@ const CreateAppointmentForm: React.FC<CreateAppointmentFormProps> = ({
   clinics,
 }) => {
   const dispatch = useAppDispatch();
+  const { isDoctor } = useAuth();
   const [isLoading, setIsLoading] = React.useState(false);
+
+  const schema = React.useMemo(() => createSchema(isDoctor), [isDoctor]);
 
   const {
     register,
@@ -123,27 +139,29 @@ const CreateAppointmentForm: React.FC<CreateAppointmentFormProps> = ({
       onSubmit={handleSubmit(onSubmit)}
       className="space-y-6"
     >
-      {/* Doctor Selection */}
-      <div>
-        <label htmlFor="doctorId" className="block text-sm font-medium text-gray-700 mb-2">
-          Doctor *
-        </label>
-        <select
-          {...register('doctorId', { valueAsNumber: true })}
-          id="doctorId"
-          className="input-field"
-        >
-          <option value="">Select a doctor</option>
-          {doctors.map(doctor => (
-            <option key={doctor.id} value={doctor.id}>
-              Dr. {doctor.name} - {doctor.specialization}
-            </option>
-          ))}
-        </select>
-        {errors.doctorId && (
-          <p className="mt-1 text-sm text-error-600">{errors.doctorId.message}</p>
-        )}
-      </div>
+      {/* Doctor Selection - Only for Admin */}
+      {!isDoctor && (
+        <div>
+          <label htmlFor="doctorId" className="block text-sm font-medium text-gray-700 mb-2">
+            Doctor *
+          </label>
+          <select
+            {...register('doctorId', { valueAsNumber: true })}
+            id="doctorId"
+            className="input-field"
+          >
+            <option value="">Select a doctor</option>
+            {doctors.map(doctor => (
+              <option key={doctor.id} value={doctor.id}>
+                Dr. {doctor.name} - {doctor.specialization}
+              </option>
+            ))}
+          </select>
+          {errors.doctorId && (
+            <p className="mt-1 text-sm text-error-600">{errors.doctorId.message}</p>
+          )}
+        </div>
+      )}
 
       {/* Clinic Selection */}
       <div>

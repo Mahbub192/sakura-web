@@ -14,8 +14,8 @@ export const publicService = {
     return response.data;
   },
 
-  // Get available appointments (public endpoint)
-  async getAvailableAppointments(filters?: { doctorId?: number; date?: string }): Promise<Appointment[]> {
+  // Get available appointments (public endpoint - no authentication required)
+  async getAvailableAppointments(filters?: { doctorId?: number; date?: string; clinicId?: number }): Promise<Appointment[]> {
     const response = await api.get('/api/public/available-appointments', { params: filters });
     return response.data;
   },

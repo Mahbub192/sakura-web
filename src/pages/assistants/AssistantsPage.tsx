@@ -1,5 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
+import { 
+  BarChart, 
+  Bar, 
+  PieChart, 
+  Pie, 
+  Cell, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer 
+} from 'recharts';
 import { 
   PlusIcon,
   MagnifyingGlassIcon,
@@ -12,6 +24,10 @@ import {
   LockClosedIcon,
   CheckCircleIcon,
   XCircleIcon,
+  ChartBarIcon,
+  SparklesIcon,
+  ArrowTrendingUpIcon as TrendingUpIcon,
+  ClockIcon,
 } from '@heroicons/react/24/outline';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { useAuth } from '../../hooks/useAuth';
@@ -205,24 +221,71 @@ const AssistantsPage: React.FC = () => {
     );
   });
 
+  // Calculate status distribution for charts
+  const statusData = useMemo(() => {
+    const active = assistants.filter(a => a.isActive).length;
+    const inactive = assistants.filter(a => !a.isActive).length;
+    
+    return [
+      { name: 'Active', value: active, color: '#10B981' },
+      { name: 'Inactive', value: inactive, color: '#EF4444' },
+    ];
+  }, [assistants]);
+
+  // Calculate experience distribution
+  const experienceData = useMemo(() => {
+    const ranges = [
+      { name: '0-2 years', min: 0, max: 2 },
+      { name: '3-5 years', min: 3, max: 5 },
+      { name: '6-10 years', min: 6, max: 10 },
+      { name: '10+ years', min: 11, max: 100 },
+    ];
+    
+    return ranges.map(range => ({
+      name: range.name,
+      count: assistants.filter(a => {
+        const exp = a.experience || 0;
+        return exp >= range.min && exp <= range.max;
+      }).length,
+    }));
+  }, [assistants]);
+
   const stats = [
     {
       title: 'Total Assistants',
       value: assistants.length,
       icon: UserIcon,
-      color: 'bg-blue-500',
+      color: 'from-primary-600 to-primary-700',
+      bg: 'bg-primary-50',
+      textColor: 'text-primary-600',
+      subtitle: 'All assistants',
     },
     {
       title: 'Active Assistants',
       value: assistants.filter(a => a.isActive).length,
       icon: CheckCircleIcon,
-      color: 'bg-green-500',
+      color: 'from-success-600 to-success-700',
+      bg: 'bg-success-50',
+      textColor: 'text-success-600',
+      subtitle: 'Currently active',
     },
     {
       title: 'Inactive Assistants',
       value: assistants.filter(a => !a.isActive).length,
       icon: XCircleIcon,
-      color: 'bg-red-500',
+      color: 'from-red-600 to-red-700',
+      bg: 'bg-red-50',
+      textColor: 'text-red-600',
+      subtitle: 'Deactivated',
+    },
+    {
+      title: 'Avg Experience',
+      value: `${Math.round(assistants.reduce((acc, a) => acc + (a.experience || 0), 0) / assistants.length || 0)} years`,
+      icon: ClockIcon,
+      color: 'from-secondary-600 to-secondary-700',
+      bg: 'bg-secondary-50',
+      textColor: 'text-secondary-600',
+      subtitle: 'Average',
     },
   ];
 
@@ -238,131 +301,244 @@ const AssistantsPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-4 px-4">
-      <div className="container mx-auto max-w-7xl">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-6"
-        >
-          <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-xl font-bold text-gray-900 mb-1 flex items-center gap-2">
-                  <UserIcon className="h-5 w-5 text-primary-600" />
-                  Assistants Management
-                </h1>
-                <p className="text-sm text-gray-600">Manage your assistants</p>
-              </div>
-              <Button
-                onClick={() => {
-                  setFormData({
-                    name: '',
-                    email: '',
-                    phone: '',
-                    qualification: '',
-                    experience: undefined,
-                    doctorId: currentDoctorProfile?.id || 0,
-                    password: '', // Not sent to backend
-                  });
-                  setShowCreateModal(true);
-                }}
-                className="flex items-center gap-2"
-              >
-                <PlusIcon className="h-4 w-4" />
-                Add Assistant
-              </Button>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          {stats.map((stat, index) => (
-            <motion.div
-              key={stat.title}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="bg-white rounded-lg shadow-md p-4 border border-gray-200"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-gray-600 mb-1">{stat.title}</p>
-                  <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-                </div>
-                <div className={`${stat.color} p-3 rounded-lg`}>
-                  <stat.icon className="h-6 w-6 text-white" />
-                </div>
-              </div>
-            </motion.div>
-          ))}
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-3"
+    >
+      {/* Enhanced Header */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-primary-600 via-primary-700 to-secondary-600 rounded-lg p-3 text-white shadow-md">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute inset-0" style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+          }}></div>
         </div>
 
-        {/* Search */}
+        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="flex items-center gap-1.5 mb-1">
+              <SparklesIcon className="h-4 w-4" />
+              <h1 className="text-lg font-bold">Assistants Management</h1>
+            </div>
+            <p className="text-xs text-primary-100">Manage your assistants</p>
+          </div>
+          <div className="mt-2 sm:mt-0">
+            <Button
+              onClick={() => {
+                setFormData({
+                  name: '',
+                  email: '',
+                  phone: '',
+                  qualification: '',
+                  experience: undefined,
+                  doctorId: currentDoctorProfile?.id || 0,
+                  password: '',
+                });
+                setShowCreateModal(true);
+              }}
+              className="bg-white text-primary-600 hover:bg-gray-50 text-xs px-2 py-1"
+              icon={<PlusIcon className="h-3 w-3" />}
+            >
+              Add Assistant
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Enhanced Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+        {stats.map((stat, index) => (
+          <motion.div
+            key={stat.title}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.05 }}
+            whileHover={{ scale: 1.02, y: -2 }}
+            className="group relative bg-white rounded-lg shadow-sm p-3 border border-gray-100 hover:shadow-md transition-all duration-300 overflow-hidden cursor-pointer"
+          >
+            {/* Gradient Background */}
+            <div className={`absolute top-0 right-0 w-16 h-16 bg-gradient-to-br ${stat.color} opacity-5 rounded-full -mr-8 -mt-8`}></div>
+            
+            <div className="relative z-10">
+              <div className="flex items-start justify-between mb-1.5">
+                <div className={`p-2 rounded-md bg-gradient-to-br ${stat.color} shadow-sm group-hover:scale-110 transition-transform`}>
+                  <stat.icon className="h-4 w-4 text-white" />
+                </div>
+                <div className={`${stat.bg} px-1.5 py-0.5 rounded-full`}>
+                  <span className={`text-xs font-medium ${stat.textColor}`}>
+                    {stat.subtitle}
+                  </span>
+                </div>
+              </div>
+              <h3 className="text-xs font-medium text-gray-600 mb-0.5">{stat.title}</h3>
+              <p className="text-xl font-bold text-gray-900">{stat.value}</p>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Charts Section */}
+      {assistants.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          {/* Status Distribution */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="bg-white rounded-lg shadow-sm p-3 border border-gray-100"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
+                <ChartBarIcon className="h-4 w-4 text-primary-600" />
+                Status Distribution
+              </h3>
+            </div>
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart>
+                <Pie
+                  data={statusData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={true}
+                  outerRadius={70}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {statusData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </motion.div>
+
+          {/* Experience Distribution */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="bg-white rounded-lg shadow-sm p-3 border border-gray-100"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
+                <ChartBarIcon className="h-4 w-4 text-primary-600" />
+                Experience Distribution
+              </h3>
+            </div>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={experienceData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                <XAxis dataKey="name" stroke="#6B7280" fontSize={10} angle={-15} textAnchor="end" height={60} />
+                <YAxis stroke="#6B7280" fontSize={10} />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#fff', 
+                    border: '1px solid #E5E7EB', 
+                    borderRadius: '8px',
+                    fontSize: '12px'
+                  }} 
+                />
+                <Bar dataKey="count" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Enhanced Search */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="bg-white rounded-lg shadow-sm p-3 border border-gray-200"
+      >
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-1.5">
+            <MagnifyingGlassIcon className="h-4 w-4 text-primary-600" />
+            <h3 className="text-sm font-bold text-gray-900">Search Assistants</h3>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <TrendingUpIcon className="h-3 w-3 text-gray-400" />
+            <span className="text-xs text-gray-500">
+              {filteredAssistants.length} found
+            </span>
+          </div>
+        </div>
+        <div className="relative">
+          <MagnifyingGlassIcon className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search by name, email, phone, or qualification..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+          />
+        </div>
+      </motion.div>
+
+      {/* Assistants List */}
+      {isLoading ? (
+        <div className="flex justify-center items-center py-8">
+          <LoadingSpinner size="md" />
+        </div>
+      ) : filteredAssistants.length === 0 ? (
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="mb-6"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="bg-white rounded-lg shadow-sm p-8 text-center border border-gray-200"
         >
-          <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
-            <div className="relative">
-              <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search assistants by name, email, phone, or qualification..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
+          <UserIcon className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+          <h3 className="text-base font-bold text-gray-900 mb-1">No Assistants Found</h3>
+          <p className="text-sm text-gray-600 mb-3">
+            {searchTerm ? 'Try adjusting your search terms' : 'Get started by adding your first assistant'}
+          </p>
+          {!searchTerm && (
+            <Button 
+              onClick={() => setShowCreateModal(true)}
+              className="text-xs px-3 py-1.5"
+              icon={<PlusIcon className="h-3.5 w-3.5" />}
+            >
+              Add Assistant
+            </Button>
+          )}
+        </motion.div>
+      ) : (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div className="p-3 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-secondary-50">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <UserIcon className="h-4 w-4 text-primary-600" />
+                <h2 className="text-sm font-bold text-gray-900">
+                  Assistants
+                  <span className="ml-1.5 text-xs font-semibold text-primary-600">
+                    ({filteredAssistants.length})
+                  </span>
+                </h2>
+              </div>
             </div>
           </div>
-        </motion.div>
-
-        {/* Assistants List */}
-        {isLoading ? (
-          <div className="flex justify-center items-center py-12">
-            <LoadingSpinner size="lg" />
-          </div>
-        ) : filteredAssistants.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="bg-white rounded-lg shadow-md p-12 text-center border border-gray-200"
-          >
-            <UserIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-bold text-gray-900 mb-2">No Assistants Found</h3>
-            <p className="text-sm text-gray-600 mb-4">
-              {searchTerm ? 'Try adjusting your search terms' : 'Get started by adding your first assistant'}
-            </p>
-            {!searchTerm && (
-              <Button onClick={() => setShowCreateModal(true)}>
-                <PlusIcon className="h-4 w-4 mr-2" />
-                Add Assistant
-              </Button>
-            )}
-          </motion.div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredAssistants.map((assistant, index) => (
-              <motion.div
-                key={assistant.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className="bg-white rounded-lg shadow-md p-4 border border-gray-200 hover:shadow-lg transition-shadow"
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-gradient-to-br from-primary-400 to-secondary-400 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                      {assistant.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <h3 className="text-base font-bold text-gray-900">{assistant.name}</h3>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+          <div className="p-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {filteredAssistants.map((assistant, index) => (
+                <motion.div
+                  key={assistant.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  whileHover={{ y: -2 }}
+                  className="bg-white rounded-lg shadow-sm p-3 border border-gray-200 hover:shadow-md transition-all duration-200"
+                >
+                  <div className="flex items-start justify-between mb-2.5">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <div className="w-10 h-10 bg-gradient-to-br from-primary-400 to-secondary-400 rounded-md flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                        {assistant.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-sm font-bold text-gray-900 truncate">{assistant.name}</h3>
+                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-semibold mt-0.5 ${
                           assistant.isActive 
                             ? 'bg-green-100 text-green-800' 
                             : 'bg-red-100 text-red-800'
@@ -372,78 +548,77 @@ const AssistantsPage: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="space-y-2 mb-4">
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <EnvelopeIcon className="h-4 w-4 text-primary-600" />
-                    <span className="truncate">{assistant.email}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <PhoneIcon className="h-4 w-4 text-primary-600" />
-                    <span>{assistant.phone}</span>
-                  </div>
-                  {assistant.qualification && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <AcademicCapIcon className="h-4 w-4 text-primary-600" />
-                      <span className="truncate">{assistant.qualification}</span>
+                  <div className="space-y-1.5 mb-2.5">
+                    <div className="flex items-center gap-1.5 text-xs text-gray-600">
+                      <EnvelopeIcon className="h-3.5 w-3.5 text-primary-500 flex-shrink-0" />
+                      <span className="truncate">{assistant.email}</span>
                     </div>
-                  )}
-                  {assistant.experience && (
-                    <div className="text-xs text-gray-500">
-                      {assistant.experience} years experience
+                    <div className="flex items-center gap-1.5 text-xs text-gray-600">
+                      <PhoneIcon className="h-3.5 w-3.5 text-primary-500 flex-shrink-0" />
+                      <span>{assistant.phone}</span>
                     </div>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-2 pt-3 border-t border-gray-200">
-                  <button
-                    onClick={() => openEditModal(assistant)}
-                    className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors text-sm font-medium"
-                  >
-                    <PencilIcon className="h-4 w-4" />
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => openPasswordModal(assistant)}
-                    className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-yellow-50 text-yellow-700 rounded-md hover:bg-yellow-100 transition-colors text-sm font-medium"
-                  >
-                    <LockClosedIcon className="h-4 w-4" />
-                    Password
-                  </button>
-                  <button
-                    onClick={() => handleToggleStatus(assistant.id)}
-                    className={`flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-md transition-colors text-sm font-medium ${
-                      assistant.isActive
-                        ? 'bg-red-50 text-red-700 hover:bg-red-100'
-                        : 'bg-green-50 text-green-700 hover:bg-green-100'
-                    }`}
-                  >
-                    {assistant.isActive ? (
-                      <>
-                        <XCircleIcon className="h-4 w-4" />
-                        Deactivate
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircleIcon className="h-4 w-4" />
-                        Activate
-                      </>
+                    {assistant.qualification && (
+                      <div className="flex items-center gap-1.5 text-xs text-gray-600">
+                        <AcademicCapIcon className="h-3.5 w-3.5 text-primary-500 flex-shrink-0" />
+                        <span className="truncate">{assistant.qualification}</span>
+                      </div>
                     )}
-                  </button>
-                  <button
-                    onClick={() => handleDeleteAssistant(assistant.id)}
-                    className="px-3 py-2 bg-red-50 text-red-700 rounded-md hover:bg-red-100 transition-colors"
-                  >
-                    <TrashIcon className="h-4 w-4" />
-                  </button>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        )}
+                    {assistant.experience && (
+                      <div className="text-xs text-gray-500">
+                        {assistant.experience} years experience
+                      </div>
+                    )}
+                  </div>
 
-        {/* Create Modal */}
+                  <div className="flex items-center gap-1.5 pt-2 border-t border-gray-200">
+                    <button
+                      onClick={() => openEditModal(assistant)}
+                      className="flex-1 flex items-center justify-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors text-xs font-medium"
+                      title="Edit"
+                    >
+                      <PencilIcon className="h-3.5 w-3.5" />
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => openPasswordModal(assistant)}
+                      className="flex-1 flex items-center justify-center gap-1 px-2 py-1 bg-yellow-50 text-yellow-700 rounded-md hover:bg-yellow-100 transition-colors text-xs font-medium"
+                      title="Change Password"
+                    >
+                      <LockClosedIcon className="h-3.5 w-3.5" />
+                      Password
+                    </button>
+                    <button
+                      onClick={() => handleToggleStatus(assistant.id)}
+                      className={`flex-1 flex items-center justify-center gap-1 px-2 py-1 rounded-md transition-colors text-xs font-medium ${
+                        assistant.isActive
+                          ? 'bg-red-50 text-red-700 hover:bg-red-100'
+                          : 'bg-green-50 text-green-700 hover:bg-green-100'
+                      }`}
+                      title={assistant.isActive ? 'Deactivate' : 'Activate'}
+                    >
+                      {assistant.isActive ? (
+                        <XCircleIcon className="h-3.5 w-3.5" />
+                      ) : (
+                        <CheckCircleIcon className="h-3.5 w-3.5" />
+                      )}
+                    </button>
+                    <button
+                      onClick={() => handleDeleteAssistant(assistant.id)}
+                      className="px-2 py-1 bg-red-50 text-red-700 rounded-md hover:bg-red-100 transition-colors"
+                      title="Delete"
+                    >
+                      <TrashIcon className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Modal */}
         <Modal
           isOpen={showCreateModal}
           onClose={() => setShowCreateModal(false)}
@@ -710,8 +885,7 @@ const AssistantsPage: React.FC = () => {
             </div>
           </div>
         </Modal>
-      </div>
-    </div>
+    </motion.div>
   );
 };
 

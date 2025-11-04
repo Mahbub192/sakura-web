@@ -1,7 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
+import { 
+  BarChart, 
+  Bar, 
+  PieChart, 
+  Pie, 
+  Cell, 
+  LineChart,
+  Line,
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer 
+} from 'recharts';
 import { 
   UsersIcon,
   MagnifyingGlassIcon,
@@ -21,6 +35,8 @@ import {
   HeartIcon,
   AcademicCapIcon,
   BuildingOfficeIcon,
+  ChartBarIcon,
+  ArrowTrendingUpIcon as TrendingUpIcon,
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
@@ -156,20 +172,90 @@ const PatientsPage: React.FC = () => {
     return acc;
   }, {} as Record<string, any>);
 
+  // Calculate status distribution for charts
+  const statusData = useMemo(() => {
+    const statusCounts: Record<string, number> = {};
+    tokenAppointments.forEach(apt => {
+      const status = apt.status || 'Unknown';
+      statusCounts[status] = (statusCounts[status] || 0) + 1;
+    });
+    
+    const colors: Record<string, string> = {
+      'Pending': '#F59E0B',
+      'Confirmed': '#10B981',
+      'Completed': '#3B82F6',
+      'Cancelled': '#EF4444',
+      'No Show': '#6B7280',
+      'Unknown': '#9CA3AF',
+    };
+    
+    return Object.entries(statusCounts).map(([name, value]) => ({
+      name,
+      value,
+      color: colors[name] || '#9CA3AF',
+    }));
+  }, [tokenAppointments]);
+
+  // Calculate weekly appointment trends
+  const weeklyData = useMemo(() => {
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() - (6 - i));
+      return format(date, 'MMM dd');
+    });
+
+    return last7Days.map(day => {
+      const dayDate = new Date(day);
+      const count = tokenAppointments.filter(apt => {
+        const aptDate = new Date(apt.date);
+        return aptDate.toDateString() === dayDate.toDateString();
+      }).length;
+
+      const completed = tokenAppointments.filter(apt => {
+        const aptDate = new Date(apt.date);
+        return aptDate.toDateString() === dayDate.toDateString() && apt.status === 'Completed';
+      }).length;
+
+      return {
+        day,
+        total: count,
+        completed,
+      };
+    });
+  }, [tokenAppointments]);
+
+  // Calculate location-wise distribution
+  const locationData = useMemo(() => {
+    const locationCounts: Record<string, number> = {};
+    tokenAppointments.forEach(apt => {
+      const locationName = apt.appointment?.clinic?.locationName || 'Unknown';
+      locationCounts[locationName] = (locationCounts[locationName] || 0) + 1;
+    });
+    
+    return Object.entries(locationCounts).map(([name, count]) => ({
+      name: name.length > 15 ? name.substring(0, 15) + '...' : name,
+      count,
+    }));
+  }, [tokenAppointments]);
+
   const stats = [
     {
       title: 'Total Patients',
       value: Object.keys(uniquePatients).length,
       icon: UsersIcon,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50',
+      color: 'from-primary-600 to-primary-700',
+      bg: 'bg-primary-50',
+      textColor: 'text-primary-600',
+      subtitle: 'Unique patients',
     },
     {
       title: 'Total Appointments',
       value: tokenAppointments.length,
       icon: CalendarDaysIcon,
-      color: 'text-green-600',
-      bgColor: 'bg-green-50',
+      color: 'from-success-600 to-success-700',
+      bg: 'bg-success-50',
+      textColor: 'text-success-600',
+      subtitle: 'All appointments',
     },
     {
       title: 'Upcoming',
@@ -178,15 +264,19 @@ const PatientsPage: React.FC = () => {
         ['Confirmed', 'Pending'].includes(apt.status)
       ).length,
       icon: ClockIcon,
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-50',
+      color: 'from-warning-600 to-warning-700',
+      bg: 'bg-warning-50',
+      textColor: 'text-warning-600',
+      subtitle: 'Scheduled',
     },
     {
       title: 'Completed',
       value: tokenAppointments.filter(apt => apt.status === 'Completed').length,
       icon: DocumentTextIcon,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-50',
+      color: 'from-blue-600 to-blue-700',
+      bg: 'bg-blue-50',
+      textColor: 'text-blue-600',
+      subtitle: 'Finished',
     },
   ];
 
@@ -196,11 +286,11 @@ const PatientsPage: React.FC = () => {
       animate={{ opacity: 1, y: 0 }}
       className="space-y-4 pb-8"
     >
-      {/* Header */}
+      {/* Enhanced Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden bg-gradient-to-br from-primary-600 via-primary-700 to-secondary-600 rounded-xl p-5 text-white shadow-lg"
+        className="relative overflow-hidden bg-gradient-to-br from-primary-600 via-primary-700 to-secondary-600 rounded-lg p-3 text-white shadow-md"
       >
         {/* Background Pattern */}
         <div className="absolute inset-0 opacity-10">
@@ -211,13 +301,13 @@ const PatientsPage: React.FC = () => {
 
         <div className="relative z-10 flex items-center justify-between">
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <SparklesIcon className="h-5 w-5" />
-              <h1 className="text-xl font-bold">
+            <div className="flex items-center gap-1.5 mb-1">
+              <SparklesIcon className="h-4 w-4" />
+              <h1 className="text-lg font-bold">
                 {isPatient ? 'My Appointments' : 'Patient Management'}
               </h1>
             </div>
-            <p className="text-sm text-primary-100">
+            <p className="text-xs text-primary-100">
               {isPatient 
                 ? 'View and manage your appointment history' 
                 : 'Manage patient appointments and medical records'
@@ -227,13 +317,13 @@ const PatientsPage: React.FC = () => {
           <button
             onClick={fetchData}
             disabled={refreshing}
-            className="hidden md:flex items-center gap-1.5 bg-white/20 backdrop-blur-sm hover:bg-white/30 rounded-lg px-3 py-1.5 text-sm transition-colors disabled:opacity-50"
+            className="hidden md:flex items-center gap-1.5 bg-white/20 backdrop-blur-sm hover:bg-white/30 rounded-lg px-2 py-1 text-xs transition-colors disabled:opacity-50"
           >
             {refreshing ? (
               <LoadingSpinner size="sm" />
             ) : (
               <>
-                <ClockIcon className="h-4 w-4" />
+                <ClockIcon className="h-3.5 w-3.5" />
                 Refresh
               </>
             )}
@@ -241,9 +331,9 @@ const PatientsPage: React.FC = () => {
         </div>
       </motion.div>
 
-      {/* Stats */}
+      {/* Enhanced Stats */}
       {!isPatient && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
           {stats.map((stat, index) => (
             <motion.div
               key={stat.title}
@@ -251,19 +341,129 @@ const PatientsPage: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
               whileHover={{ scale: 1.02, y: -2 }}
-              className="bg-white rounded-xl shadow-md p-4 border border-gray-100 hover:shadow-lg transition-all duration-300"
+              className="group relative bg-white rounded-lg shadow-sm p-3 border border-gray-100 hover:shadow-md transition-all duration-300 overflow-hidden cursor-pointer"
             >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <p className="text-xs font-medium text-gray-600 mb-1">{stat.title}</p>
-                  <p className="text-xl font-bold text-gray-900">{stat.value}</p>
+              {/* Gradient Background */}
+              <div className={`absolute top-0 right-0 w-16 h-16 bg-gradient-to-br ${stat.color} opacity-5 rounded-full -mr-8 -mt-8`}></div>
+              
+              <div className="relative z-10">
+                <div className="flex items-start justify-between mb-1.5">
+                  <div className={`p-2 rounded-md bg-gradient-to-br ${stat.color} shadow-sm group-hover:scale-110 transition-transform`}>
+                    <stat.icon className="h-4 w-4 text-white" />
+                  </div>
+                  <div className={`${stat.bg} px-1.5 py-0.5 rounded-full`}>
+                    <span className={`text-xs font-medium ${stat.textColor}`}>
+                      {stat.subtitle}
+                    </span>
+                  </div>
                 </div>
-                <div className={`${stat.bgColor} p-2.5 rounded-lg`}>
-                  <stat.icon className={`h-5 w-5 ${stat.color}`} />
-                </div>
+                <h3 className="text-xs font-medium text-gray-600 mb-0.5">{stat.title}</h3>
+                <p className="text-xl font-bold text-gray-900">{stat.value}</p>
               </div>
             </motion.div>
           ))}
+        </div>
+      )}
+
+      {/* Charts Section */}
+      {!isPatient && tokenAppointments.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+          {/* Status Distribution */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="bg-white rounded-lg shadow-sm p-3 border border-gray-100"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
+                <ChartBarIcon className="h-4 w-4 text-primary-600" />
+                Status Distribution
+              </h3>
+            </div>
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart>
+                <Pie
+                  data={statusData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={true}
+                  outerRadius={70}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {statusData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </motion.div>
+
+          {/* Weekly Trends */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="bg-white rounded-lg shadow-sm p-3 border border-gray-100"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
+                <ChartBarIcon className="h-4 w-4 text-primary-600" />
+                Weekly Trends
+              </h3>
+            </div>
+            <ResponsiveContainer width="100%" height={200}>
+              <LineChart data={weeklyData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                <XAxis dataKey="day" stroke="#6B7280" fontSize={10} />
+                <YAxis stroke="#6B7280" fontSize={10} />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#fff', 
+                    border: '1px solid #E5E7EB', 
+                    borderRadius: '8px',
+                    fontSize: '12px'
+                  }} 
+                />
+                <Line type="monotone" dataKey="total" stroke="#3B82F6" strokeWidth={2} dot={{ r: 3 }} />
+                <Line type="monotone" dataKey="completed" stroke="#10B981" strokeWidth={2} dot={{ r: 3 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </motion.div>
+
+          {/* Location Distribution */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="bg-white rounded-lg shadow-sm p-3 border border-gray-100"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
+                <ChartBarIcon className="h-4 w-4 text-primary-600" />
+                Location Distribution
+              </h3>
+            </div>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={locationData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                <XAxis dataKey="name" stroke="#6B7280" fontSize={9} angle={-15} textAnchor="end" height={60} />
+                <YAxis stroke="#6B7280" fontSize={10} />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#fff', 
+                    border: '1px solid #E5E7EB', 
+                    borderRadius: '8px',
+                    fontSize: '12px'
+                  }} 
+                />
+                <Bar dataKey="count" fill="#8B5CF6" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </motion.div>
         </div>
       )}
 
@@ -304,88 +504,92 @@ const PatientsPage: React.FC = () => {
         </motion.div>
       )} */}
 
-      {/* Filters */}
+      {/* Enhanced Filters */}
       {!isPatient && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="bg-white rounded-xl shadow-md p-4 border border-gray-100"
+          transition={{ delay: 0.2 }}
+          className="bg-white rounded-lg shadow-sm p-3 border border-gray-200"
         >
-          <div className="flex items-center gap-2 mb-3">
-            <FunnelIcon className="h-4 w-4 text-primary-600" />
-            <h3 className="text-lg font-bold text-gray-900">Filters & Search</h3>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-1.5">
+              <FunnelIcon className="h-4 w-4 text-primary-600" />
+              <h3 className="text-sm font-bold text-gray-900">Search & Filter</h3>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <TrendingUpIcon className="h-3 w-3 text-gray-400" />
+              <span className="text-xs text-gray-500">
+                {filteredAppointments.length} found
+              </span>
+            </div>
           </div>
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-3 lg:space-y-0 lg:space-x-3">
+          <div className="flex flex-wrap items-center gap-2">
             {/* Search */}
-            <div className="relative flex-1 max-w-md">
-              <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <div className="relative flex-1 min-w-[200px]">
+              <MagnifyingGlassIcon className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
               <input
                 type="text"
                 placeholder="Search by name, email, phone, or token..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 input-field text-sm"
+                className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
 
             {/* Filters */}
-            <div className="flex gap-2 flex-wrap">
-              <div className="relative">
-                <MapPinIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none z-10" />
-                <select
-                  value={locationFilter}
-                  onChange={(e) => setLocationFilter(e.target.value ? Number(e.target.value) : '')}
-                  className="pl-9 input-field min-w-[160px] text-sm appearance-none bg-white pr-8"
-                >
-                  <option value="">All Locations</option>
-                  {clinics.map((clinic) => (
-                    <option key={clinic.id} value={clinic.id}>
-                      {clinic.locationName} - {clinic.city}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="relative">
-                <CalendarIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-                <input
-                  type="date"
-                  value={dateFilter}
-                  onChange={(e) => setDateFilter(e.target.value)}
-                  className="pl-9 input-field text-sm"
-                />
-              </div>
-
-              <div className="relative">
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="input-field min-w-[120px] text-sm appearance-none bg-white pr-8"
-                >
-                  <option value="all">All Status</option>
-                  <option value="pending">Pending</option>
-                  <option value="confirmed">Confirmed</option>
-                  <option value="completed">Completed</option>
-                  <option value="cancelled">Cancelled</option>
-                  <option value="no show">No Show</option>
-                </select>
-              </div>
-
-              {(statusFilter !== 'all' || dateFilter || locationFilter) && (
-                <button
-                  onClick={() => {
-                    setStatusFilter('all');
-                    setDateFilter('');
-                    setLocationFilter('');
-                  }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700"
-                >
-                  <XCircleIcon className="h-4 w-4" />
-                  Clear
-                </button>
-              )}
+            <div className="relative">
+              <MapPinIcon className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-gray-400 pointer-events-none z-10" />
+              <select
+                value={locationFilter}
+                onChange={(e) => setLocationFilter(e.target.value ? Number(e.target.value) : '')}
+                className="pl-8 pr-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 min-w-[160px] appearance-none bg-white"
+              >
+                <option value="">All Locations</option>
+                {clinics.map((clinic) => (
+                  <option key={clinic.id} value={clinic.id}>
+                    {clinic.locationName} - {clinic.city}
+                  </option>
+                ))}
+              </select>
             </div>
+
+            <div className="relative">
+              <CalendarIcon className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-gray-400 pointer-events-none" />
+              <input
+                type="date"
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+                className="pl-8 pr-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 min-w-[120px] appearance-none bg-white"
+            >
+              <option value="all">All Status</option>
+              <option value="pending">Pending</option>
+              <option value="confirmed">Confirmed</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+              <option value="no show">No Show</option>
+            </select>
+
+            {(statusFilter !== 'all' || dateFilter || locationFilter) && (
+              <button
+                onClick={() => {
+                  setStatusFilter('all');
+                  setDateFilter('');
+                  setLocationFilter('');
+                }}
+                className="flex items-center gap-1.5 px-2 py-1.5 text-xs border border-gray-300 rounded-md hover:bg-gray-50 transition-colors text-gray-700"
+              >
+                <XCircleIcon className="h-3.5 w-3.5" />
+                Clear
+              </button>
+            )}
           </div>
         </motion.div>
       )}
@@ -728,7 +932,7 @@ const PatientsPage: React.FC = () => {
                 )}
               </div>
             ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {filteredAppointments.map((appointment, index) => (
                   <motion.div
                     key={appointment.id}
@@ -815,16 +1019,21 @@ const PatientsPage: React.FC = () => {
                 <div className="bg-white p-3 rounded-lg">
                   <p className="text-xs font-medium text-gray-500 mb-0.5">Status</p>
                   <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
-                    selectedPatient.status === 'Confirmed' ? 'bg-green-100 text-green-800' :
-                    selectedPatient.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
-                    selectedPatient.status === 'Completed' ? 'bg-blue-100 text-blue-800' :
-                    'bg-red-100 text-red-800'
+                    selectedPatient.status === 'Confirmed' ? 'bg-green-100 text-green-800 border border-green-200' :
+                    selectedPatient.status === 'Pending' ? 'bg-yellow-100 text-yellow-800 border border-yellow-200' :
+                    selectedPatient.status === 'Completed' ? 'bg-blue-100 text-blue-800 border border-blue-200 shadow-sm' :
+                    'bg-red-100 text-red-800 border border-red-200'
                   }`}>
                     {selectedPatient.status === 'Confirmed' && <CheckCircleIcon className="h-3.5 w-3.5 mr-1" />}
                     {selectedPatient.status === 'Pending' && <ClockIcon className="h-3.5 w-3.5 mr-1" />}
                     {selectedPatient.status === 'Cancelled' && <XCircleIcon className="h-3.5 w-3.5 mr-1" />}
-                    {selectedPatient.status === 'Completed' && <CheckCircleIcon className="h-3.5 w-3.5 mr-1" />}
-                    {selectedPatient.status}
+                    {selectedPatient.status === 'Completed' && (
+                      <div className="flex items-center gap-1">
+                        <CheckCircleIcon className="h-3.5 w-3.5 text-blue-600" />
+                        <span className="font-bold">Completed</span>
+                      </div>
+                    )}
+                    {selectedPatient.status !== 'Completed' && selectedPatient.status}
                   </span>
                 </div>
                 <div className="bg-white p-3 rounded-lg">

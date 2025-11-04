@@ -95,8 +95,22 @@ type FormData = yup.InferType<typeof schema>;
 const PatientBookingPage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isAssistant } = useAuth();
   const { availableSlots, isLoading: slotsLoading } = useAppSelector(state => state.appointments);
+  
+  // Redirect assistants to their booking page
+  React.useEffect(() => {
+    if (isAssistant) {
+      console.log('[PatientBookingPage] Assistant detected, redirecting to /assistants/booking');
+      navigate('/assistants/booking', { replace: true });
+      return;
+    }
+  }, [isAssistant, navigate]);
+  
+  // Early return if assistant (while redirecting)
+  if (isAssistant) {
+    return null;
+  }
   const { doctors } = useAppSelector(state => state.doctors);
   const { clinics } = useAppSelector(state => state.clinics);
   const { isLoading: bookingLoading } = useAppSelector(state => state.patients);

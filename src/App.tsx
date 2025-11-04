@@ -38,7 +38,7 @@ import ClinicsPage from './pages/clinics/ClinicsPage';
 import GlobalDashboardPage from './pages/admin/GlobalDashboardPage';
 
 const AppContent: React.FC = () => {
-  const { isLoading, isAuthenticated } = useAuth();
+  const { isLoading, isAuthenticated, user } = useAuth();
 
   if (isLoading) {
     return (
@@ -64,7 +64,10 @@ const AppContent: React.FC = () => {
         } />
         <Route path="/book-appointment" element={
           isAuthenticated ? 
-          <DashboardLayout><PatientBookingPage /></DashboardLayout> : 
+          (user?.role === 'Assistant' ? 
+            <Navigate to="/assistants/booking" replace /> :
+            <DashboardLayout><PatientBookingPage /></DashboardLayout>
+          ) : 
           <AuthLayout><BookAppointmentPage /></AuthLayout>
         } />
         <Route path="/patients/view" element={<PatientsViewPage />} />

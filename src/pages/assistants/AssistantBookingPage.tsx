@@ -46,6 +46,8 @@ const formatTimeTo12Hour = (time24: string): string => {
 const AssistantBookingPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const { isAssistant, user } = useAuth();
+  
+  console.log('[AssistantBookingPage] Component rendered, isAssistant:', isAssistant, 'user:', user);
   const { clinics } = useAppSelector(state => state.clinics);
   const { currentDoctorProfile } = useAppSelector(state => state.doctors);
   const { availableSlots, isLoading: slotsLoading } = useAppSelector(state => state.appointments);
@@ -126,7 +128,9 @@ const AssistantBookingPage: React.FC = () => {
 
     try {
       setIsBooking(true);
-      await assistantBookingService.bookPatient(bookingData);
+      console.log('[AssistantBookingPage] Calling assistantBookingService.bookPatient with:', bookingData);
+      const result = await assistantBookingService.bookPatient(bookingData);
+      console.log('[AssistantBookingPage] Booking successful, result:', result);
       toast.success('Appointment booked successfully!');
       setShowBookingModal(false);
       setSelectedSlot(null);
@@ -155,7 +159,14 @@ const AssistantBookingPage: React.FC = () => {
         }));
       }
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || 'Failed to book appointment');
+      console.error('Booking error:', error);
+      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to book appointment';
+      toast.error(errorMessage);
+      
+      // If 403 Forbidden, it might be a role issue
+      if (error?.response?.status === 403) {
+        console.error('403 Forbidden - Check user role in JWT token');
+      }
     } finally {
       setIsBooking(false);
     }

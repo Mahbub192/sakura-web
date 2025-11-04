@@ -21,8 +21,21 @@ export interface CreatePatientBookingRequest {
 export const assistantBookingService = {
   // Book appointment for patient (Assistant only)
   async bookPatient(bookingData: CreatePatientBookingRequest): Promise<TokenAppointment> {
-    const response = await api.post('/assistant-booking/book-patient', bookingData);
-    return response.data;
+    console.log('[assistantBookingService] Calling /assistant-booking/book-patient with data:', bookingData);
+    try {
+      const response = await api.post('/assistant-booking/book-patient', bookingData);
+      console.log('[assistantBookingService] Success response:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('[assistantBookingService] Error calling /assistant-booking/book-patient:', {
+        url: error?.config?.url,
+        method: error?.config?.method,
+        status: error?.response?.status,
+        message: error?.response?.data?.message,
+        fullError: error,
+      });
+      throw error;
+    }
   },
 
   // Get available slots for assistant's doctor

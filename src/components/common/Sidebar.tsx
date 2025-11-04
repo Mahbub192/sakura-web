@@ -4,12 +4,14 @@ import { motion } from 'framer-motion';
 import { 
   HomeIcon, 
   CalendarIcon, 
-  UserGroupIcon, 
   UsersIcon,
   CogIcon,
   ArrowRightOnRectangleIcon as LogoutIcon,
   XMarkIcon as XIcon,
   HeartIcon,
+  BuildingOfficeIcon,
+  ChartBarIcon,
+  UserIcon,
 } from '@heroicons/react/24/outline';
 import { useAppDispatch } from '../../hooks/redux';
 import { logoutUser } from '../../store/slices/authSlice';
@@ -39,6 +41,10 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen, userRole
       { name: 'Appointments', href: '/appointments', icon: CalendarIcon, roles: ['Admin', 'Doctor', 'Assistant'] },
       { name: 'Doctors', href: '/doctors', icon: HeartIcon, roles: ['Admin', 'Doctor', 'Assistant'] },
       { name: 'Patients', href: '/patients', icon: UsersIcon, roles: ['Admin', 'Doctor', 'Assistant'] },
+      { name: 'Assistants', href: '/assistants', icon: UserIcon, roles: ['Doctor'] },
+      { name: 'Book Appointment', href: '/assistants/booking', icon: CalendarIcon, roles: ['Assistant'] },
+      { name: 'Clinics', href: '/clinics', icon: BuildingOfficeIcon, roles: ['Admin'] },
+      { name: 'Global Dashboard', href: '/global-dashboard', icon: ChartBarIcon, roles: ['Admin', 'Doctor'] },
       { name: 'My Appointments', href: '/patients', icon: CalendarIcon, roles: ['User'] },
       { name: 'Book Appointment', href: '/patients/book', icon: CalendarIcon, roles: ['User'] },
       { name: 'Administration', href: '/admin', icon: CogIcon, roles: ['Admin'] },

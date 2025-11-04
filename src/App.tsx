@@ -32,6 +32,10 @@ import ProtectedRoute from './components/common/ProtectedRoute';
 import 'react-toastify/dist/ReactToastify.css';
 import './index.css';
 import AdminUsersPage from './pages/admin/AdminUsersPage';
+import AssistantsPage from './pages/assistants/AssistantsPage';
+import AssistantBookingPage from './pages/assistants/AssistantBookingPage';
+import ClinicsPage from './pages/clinics/ClinicsPage';
+import GlobalDashboardPage from './pages/admin/GlobalDashboardPage';
 
 const AppContent: React.FC = () => {
   const { isLoading, isAuthenticated } = useAuth();
@@ -124,6 +128,30 @@ const AppContent: React.FC = () => {
         <Route path="/admin/users" element={
           <ProtectedRoute allowedRoles={['Admin']}>
             <DashboardLayout><AdminUsersPage /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/assistants" element={
+          <ProtectedRoute allowedRoles={['Doctor']}>
+            <DashboardLayout><AssistantsPage /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/assistants/booking" element={
+          <ProtectedRoute allowedRoles={['Assistant']}>
+            <DashboardLayout><AssistantBookingPage /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/clinics" element={
+          <ProtectedRoute allowedRoles={['Admin']}>
+            <DashboardLayout><ClinicsPage /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/global-dashboard" element={
+          <ProtectedRoute allowedRoles={['Admin', 'Doctor']}>
+            <DashboardLayout><GlobalDashboardPage /></DashboardLayout>
           </ProtectedRoute>
         } />
 

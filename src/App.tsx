@@ -70,7 +70,11 @@ const AppContent: React.FC = () => {
           ) : 
           <AuthLayout><BookAppointmentPage /></AuthLayout>
         } />
-        <Route path="/patients/view" element={<PatientsViewPage />} />
+        <Route path="/patients/view" element={
+          <ProtectedRoute allowedRoles={['Admin', 'Doctor', 'Assistant']}>
+            <DashboardLayout><PatientsViewPage /></DashboardLayout>
+          </ProtectedRoute>
+        } />
 
         {/* Protected Routes */}
         <Route path="/dashboard" element={

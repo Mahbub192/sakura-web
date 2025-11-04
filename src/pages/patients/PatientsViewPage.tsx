@@ -17,9 +17,10 @@ import {
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
+import { useAuth } from '../../hooks/useAuth';
 import { fetchTokenAppointments } from '../../store/slices/appointmentSlice';
 import { fetchClinics } from '../../store/slices/clinicSlice';
-import { fetchDoctors } from '../../store/slices/doctorSlice';
+import { fetchDoctors, fetchCurrentDoctorProfile } from '../../store/slices/doctorSlice';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { toast } from 'react-toastify';
 import { TokenAppointment, Doctor } from '../../types';
@@ -44,9 +45,10 @@ const formatTimeTo12Hour = (time24: string): string => {
 
 const PatientsViewPage: React.FC = () => {
   const dispatch = useAppDispatch();
+  const { isAssistant } = useAuth();
   const { isLoading } = useAppSelector(state => state.appointments);
   const { clinics } = useAppSelector(state => state.clinics);
-  const { doctors } = useAppSelector(state => state.doctors);
+  const { doctors, currentDoctorProfile } = useAppSelector(state => state.doctors);
   
   const [selectedLocation, setSelectedLocation] = useState<number | ''>('');
   const [selectedDate, setSelectedDate] = useState<string>('');
@@ -55,9 +57,21 @@ const PatientsViewPage: React.FC = () => {
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
 
   useEffect(() => {
+    if (isAssistant) {
+      // For assistants, fetch their assigned doctor's profile
+      dispatch(fetchCurrentDoctorProfile());
+    }
     dispatch(fetchClinics());
     dispatch(fetchDoctors());
-  }, [dispatch]);
+  }, [dispatch, isAssistant]);
+  
+  // For assistants, automatically set their assigned doctor
+  useEffect(() => {
+    if (isAssistant && currentDoctorProfile) {
+      setSelectedDoctorFilter(currentDoctorProfile.id);
+      setSelectedDoctor(currentDoctorProfile);
+    }
+  }, [isAssistant, currentDoctorProfile]);
 
   useEffect(() => {
     if (selectedLocation && selectedDate) {
@@ -76,16 +90,23 @@ const PatientsViewPage: React.FC = () => {
     }
 
     try {
+      // For assistants, always use their assigned doctor's ID
+      const doctorIdToUse = isAssistant && currentDoctorProfile 
+        ? currentDoctorProfile.id 
+        : (selectedDoctorFilter ? Number(selectedDoctorFilter) : undefined);
+      
       const result = await dispatch(fetchTokenAppointments({ 
         clinicId: Number(selectedLocation), 
         date: selectedDate,
-        doctorId: selectedDoctorFilter ? Number(selectedDoctorFilter) : undefined,
+        doctorId: doctorIdToUse,
       })).unwrap();
       
       setFilteredPatients(result);
       
       // Set the doctor from filter or first doctor from results
-      if (selectedDoctorFilter) {
+      if (isAssistant && currentDoctorProfile) {
+        setSelectedDoctor(currentDoctorProfile);
+      } else if (selectedDoctorFilter) {
         const doctor = doctors.find(d => d.id === Number(selectedDoctorFilter));
         setSelectedDoctor(doctor || null);
       } else if (result.length > 0 && result[0].doctor) {
@@ -93,9 +114,10 @@ const PatientsViewPage: React.FC = () => {
       } else {
         setSelectedDoctor(null);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch patients:', error);
-      toast.error('Failed to load patients');
+      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to load patients';
+      toast.error(errorMessage);
       setFilteredPatients([]);
       setSelectedDoctor(null);
     }
@@ -172,9 +194,12 @@ const PatientsViewPage: React.FC = () => {
                   Doctor
                 </label>
                 <select
-                  value={selectedDoctorFilter}
+                  value={isAssistant && currentDoctorProfile ? currentDoctorProfile.id : selectedDoctorFilter}
                   onChange={(e) => setSelectedDoctorFilter(e.target.value ? Number(e.target.value) : '')}
-                  className="w-full text-sm px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  disabled={isAssistant}
+                  className={`w-full text-sm px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+                    isAssistant ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''
+                  }`}
                 >
                   <option value="">All Doctors</option>
                   {doctors.map((doctor) => (
@@ -183,6 +208,9 @@ const PatientsViewPage: React.FC = () => {
                     </option>
                   ))}
                 </select>
+                {isAssistant && currentDoctorProfile && (
+                  <p className="text-xs text-gray-500 mt-1">Showing patients for your assigned doctor</p>
+                )}
               </div>
 
               {/* Filter Button */}
@@ -225,11 +253,15 @@ const PatientsViewPage: React.FC = () => {
                       </span>
                     </div>
                   )}
-                  {selectedDoctorFilter && (
+                  {(selectedDoctorFilter || (isAssistant && currentDoctorProfile)) && (
                     <div className="flex items-center gap-1.5">
                       <HeartIcon className="h-3.5 w-3.5 text-primary-600" />
                       <span className="font-medium text-gray-700">
-                        {doctors.find(d => d.id === Number(selectedDoctorFilter))?.name ? `Dr. ${doctors.find(d => d.id === Number(selectedDoctorFilter))?.name}` : 'Doctor'}
+                        {isAssistant && currentDoctorProfile
+                          ? `Dr. ${currentDoctorProfile.name}`
+                          : doctors.find(d => d.id === Number(selectedDoctorFilter))?.name 
+                            ? `Dr. ${doctors.find(d => d.id === Number(selectedDoctorFilter))?.name}` 
+                            : 'Doctor'}
                       </span>
                     </div>
                   )}

@@ -279,26 +279,41 @@ const AssistantBookingPage: React.FC = () => {
 
   // Create individual slots for each available patient spot
   const individualSlots = filteredSlots.flatMap((slot) => {
-    const availableSpots = slot.maxPatients - (slot.currentBookings || 0);
-    const totalAvailable = slot.maxPatients;
+    const bookedTimes = slot.bookedTimes || [];
+    const maxPatients = slot.maxPatients;
+    const cards = [];
     
-    return Array.from({ length: availableSpots }, (_, index) => {
-      const slotPosition = index + 1;
+    // Generate all possible positions (0 to maxPatients-1)
+    for (let position = 0; position < maxPatients; position++) {
+      // Calculate the time for this position
       const individualStartTime = calculatePatientSlotTime(
         slot.startTime,
         slot.endTime || slot.startTime,
-        slotPosition,
-        totalAvailable
+        position,
+        maxPatients
       );
       
-      return {
-        ...slot,
-        uniqueId: `${slot.id}-${slotPosition}`,
-        slotIndex: slotPosition,
-        totalAvailable,
-        individualStartTime,
-      };
-    });
+      // Check if this time is already booked
+      // Compare times in HH:MM format (normalize to handle slight variations)
+      const isBooked = bookedTimes.some(bookedTime => {
+        // Normalize both times to HH:MM format for comparison
+        const bookedTimeNormalized = bookedTime.substring(0, 5); // "HH:MM"
+        const slotTimeNormalized = individualStartTime.substring(0, 5); // "HH:MM"
+        return bookedTimeNormalized === slotTimeNormalized;
+      });
+      
+      // Only include positions that are NOT booked
+      if (!isBooked) {
+        cards.push({
+          ...slot,
+          slotIndex: position + 1, // Position number (1, 2, 3, ...)
+          totalAvailable: maxPatients - bookedTimes.length,
+          individualStartTime, // Each card has its own calculated start time
+          uniqueId: `${slot.id}-${position}`, // Unique identifier for selection
+        });
+      }
+    }
+    return cards;
   });
 
   if (!isAssistant) {
@@ -508,9 +523,9 @@ const AssistantBookingPage: React.FC = () => {
             <div className="bg-primary-50 p-3 rounded-md mb-4">
               <p className="text-sm font-medium text-gray-700 mb-1">Selected Slot:</p>
               <p className="text-sm text-gray-600">
-                {selectedSlot && (
+                {selectedSlot && bookingData.time && (
                   <>
-                    {formatTimeTo12Hour(selectedSlot.startTime)} on {format(new Date(selectedSlot.date), 'MMM dd, yyyy')}
+                    {formatTimeTo12Hour(bookingData.time)} on {format(new Date(selectedSlot.date), 'MMM dd, yyyy')}
                     {selectedSlot.clinic && ` at ${selectedSlot.clinic.locationName}`}
                   </>
                 )}

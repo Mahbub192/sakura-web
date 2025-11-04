@@ -10,6 +10,7 @@ export interface BookAppointmentRequest {
   patientLocation?: string;
   isOldPatient?: boolean;
   appointmentId: number;
+  time?: string; // Individual calculated time in HH:MM format
   reasonForVisit?: string;
   notes?: string;
 }

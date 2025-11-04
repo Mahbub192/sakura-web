@@ -98,6 +98,7 @@ export interface Appointment {
   date: string;
   startTime: string;
   endTime: string;
+  bookedTimes?: string[]; // Array of booked times for this slot
   duration: number;
   status: 'Available' | 'Booked' | 'Completed' | 'Cancelled';
   maxPatients: number;

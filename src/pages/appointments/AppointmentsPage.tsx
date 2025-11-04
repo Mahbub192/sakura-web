@@ -33,6 +33,24 @@ import AppointmentCard from '../../components/appointments/AppointmentCard';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { toast } from 'react-toastify';
 
+// Helper function to convert 24-hour time to 12-hour AM/PM format
+const formatTimeTo12Hour = (time24: string): string => {
+  if (!time24) return '';
+  const [hours, minutes] = time24.split(':');
+  const hour24 = parseInt(hours, 10);
+  const mins = minutes || '00';
+  
+  if (hour24 === 0) {
+    return `12:${mins} AM`;
+  } else if (hour24 < 12) {
+    return `${hour24}:${mins} AM`;
+  } else if (hour24 === 12) {
+    return `12:${mins} PM`;
+  } else {
+    return `${hour24 - 12}:${mins} PM`;
+  }
+};
+
 const AppointmentsPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const { user, isAdmin, isDoctor, isAssistant } = useAuth();
@@ -616,7 +634,7 @@ const AppointmentsPage: React.FC = () => {
                           </div>
                           <div className="flex items-center gap-1.5 text-gray-600">
                             <CalendarIcon className="h-3.5 w-3.5 text-primary-600" />
-                            <span className="truncate">{format(new Date(booking.date), 'MMM dd, yyyy')} at {booking.time}</span>
+                            <span className="truncate">{format(new Date(booking.date), 'MMM dd, yyyy')} at {formatTimeTo12Hour(booking.time || '')}</span>
                           </div>
                           <div className="flex items-center gap-1.5 text-gray-600">
                             <UserGroupIcon className="h-3.5 w-3.5 text-primary-600" />

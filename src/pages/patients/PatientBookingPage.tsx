@@ -86,6 +86,7 @@ const schema = yup.object({
   patientLocation: yup.string().optional(),
   isOldPatient: yup.boolean().optional(),
   appointmentId: yup.number().required('Please select an appointment slot'),
+  time: yup.string().required('Time is required'),
   reasonForVisit: yup.string().optional(),
   notes: yup.string().optional(),
 }).required();
@@ -223,29 +224,41 @@ const PatientBookingPage: React.FC = () => {
   console.log('==============================');
 
   // Create individual patient slot cards
-  // For each slot, create cards for each available patient position
+  // For each slot, create cards for each available patient position (excluding booked positions)
   const individualSlots = filteredSlots.flatMap(slot => {
-    const availableSpots = slot.maxPatients - (slot.currentBookings || 0);
-    const bookedSpots = slot.currentBookings || 0;
+    const bookedTimes = slot.bookedTimes || [];
+    const maxPatients = slot.maxPatients;
     const cards = [];
-    for (let i = 0; i < availableSpots; i++) {
-      // Calculate individual slot time based on position
-      // slotIndex is the position AFTER already booked spots
-      const slotPosition = bookedSpots + i; // 0-based position in the slot
+    
+    // Generate all possible positions (0 to maxPatients-1)
+    for (let position = 0; position < maxPatients; position++) {
+      // Calculate the time for this position
       const individualStartTime = calculatePatientSlotTime(
         slot.startTime,
         slot.endTime,
-        slotPosition,
-        slot.maxPatients
+        position,
+        maxPatients
       );
       
-      cards.push({
-        ...slot,
-        slotIndex: bookedSpots + i + 1, // Position number (1, 2, 3, ...)
-        totalAvailable: availableSpots,
-        individualStartTime, // Each card has its own calculated start time
-        uniqueId: `${slot.id}-${slotPosition}`, // Unique identifier for selection
+      // Check if this time is already booked
+      // Compare times in HH:MM format (normalize to handle slight variations)
+      const isBooked = bookedTimes.some(bookedTime => {
+        // Normalize both times to HH:MM format for comparison
+        const bookedTimeNormalized = bookedTime.substring(0, 5); // "HH:MM"
+        const slotTimeNormalized = individualStartTime.substring(0, 5); // "HH:MM"
+        return bookedTimeNormalized === slotTimeNormalized;
       });
+      
+      // Only include positions that are NOT booked
+      if (!isBooked) {
+        cards.push({
+          ...slot,
+          slotIndex: position + 1, // Position number (1, 2, 3, ...)
+          totalAvailable: maxPatients - bookedTimes.length,
+          individualStartTime, // Each card has its own calculated start time
+          uniqueId: `${slot.id}-${position}`, // Unique identifier for selection
+        });
+      }
     }
     return cards;
   });
@@ -623,6 +636,9 @@ const PatientBookingPage: React.FC = () => {
                           onClick={() => {
                             setSelectedSlotUniqueId(slot.uniqueId);
                             setValue('appointmentId', slot.id); // Still set appointmentId for form submission
+                            // Set the individual calculated time
+                            const time24 = slot.individualStartTime || slot.startTime;
+                            setValue('time', time24);
                           }}
                           className={`
                             p-3 rounded-lg border-2 transition-all duration-200 text-left relative min-h-[120px] w-full
@@ -727,6 +743,9 @@ const PatientBookingPage: React.FC = () => {
               </motion.div>
             </div>
 
+            {/* Hidden time field to ensure it's always included in form submission */}
+            <input type="hidden" {...register('time')} />
+
             {/* Submit Button */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -806,7 +825,7 @@ const PatientBookingPage: React.FC = () => {
                 </div>
                 <div className="bg-white p-4 rounded-lg">
                   <p className="text-sm text-gray-500 mb-1">Time</p>
-                  <p className="font-semibold text-gray-900">{bookingDetails.time}</p>
+                  <p className="font-semibold text-gray-900">{formatTimeTo12Hour(bookingDetails.time || '')}</p>
                 </div>
               </div>
               <div className="bg-white p-4 rounded-lg">

@@ -39,6 +39,24 @@ import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { toast } from 'react-toastify';
 import { Doctor } from '../../types';
 
+// Helper function to convert 24-hour time to 12-hour AM/PM format
+const formatTimeTo12Hour = (time24: string): string => {
+  if (!time24) return '';
+  const [hours, minutes] = time24.split(':');
+  const hour24 = parseInt(hours, 10);
+  const mins = minutes || '00';
+  
+  if (hour24 === 0) {
+    return `12:${mins} AM`;
+  } else if (hour24 < 12) {
+    return `${hour24}:${mins} AM`;
+  } else if (hour24 === 12) {
+    return `12:${mins} PM`;
+  } else {
+    return `${hour24 - 12}:${mins} PM`;
+  }
+};
+
 const PatientsPage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
@@ -632,7 +650,7 @@ const PatientsPage: React.FC = () => {
                             </div>
                             <div className="flex items-center gap-1.5 text-gray-600">
                               <CalendarIcon className="h-3.5 w-3.5" />
-                              <span>{patient.time}</span>
+                              <span>{formatTimeTo12Hour(patient.time || '')}</span>
                             </div>
                           </div>
 
@@ -814,7 +832,7 @@ const PatientsPage: React.FC = () => {
                   <div className="flex items-center gap-1.5">
                     <CalendarIcon className="h-3.5 w-3.5 text-gray-400" />
                     <p className="text-sm font-semibold text-gray-900">
-                      {format(new Date(selectedPatient.date), 'MMM dd, yyyy')} at {selectedPatient.time}
+                      {format(new Date(selectedPatient.date), 'MMM dd, yyyy')} at {formatTimeTo12Hour(selectedPatient.time || '')}
                     </p>
                   </div>
                 </div>

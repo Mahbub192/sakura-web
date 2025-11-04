@@ -518,11 +518,12 @@ const AssistantBookingPage: React.FC = () => {
             setSelectedSlot(null);
           }}
           title="Book Appointment for Patient"
+          size="md"
         >
-          <div className="space-y-4">
-            <div className="bg-primary-50 p-3 rounded-md mb-4">
-              <p className="text-sm font-medium text-gray-700 mb-1">Selected Slot:</p>
-              <p className="text-sm text-gray-600">
+          <div className="space-y-3">
+            <div className="bg-primary-50 p-2 rounded-md mb-2">
+              <p className="text-xs font-medium text-gray-700 mb-0.5">Selected Slot:</p>
+              <p className="text-xs text-gray-600">
                 {selectedSlot && bookingData.time && (
                   <>
                     {formatTimeTo12Hour(bookingData.time)} on {format(new Date(selectedSlot.date), 'MMM dd, yyyy')}
@@ -533,39 +534,39 @@ const AssistantBookingPage: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Patient Name *</label>
+              <label className="block text-xs font-medium text-gray-700 mb-0.5">Patient Name *</label>
               <input
                 type="text"
                 value={bookingData.patientName}
                 onChange={(e) => setBookingData({ ...bookingData, patientName: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                <label className="block text-xs font-medium text-gray-700 mb-0.5">Email *</label>
                 <input
                   type="email"
                   value={bookingData.patientEmail}
                   onChange={(e) => setBookingData({ ...bookingData, patientEmail: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Phone *</label>
+                <label className="block text-xs font-medium text-gray-700 mb-0.5">Phone *</label>
                 <input
                   type="tel"
                   value={bookingData.patientPhone}
                   onChange={(e) => setBookingData({ ...bookingData, patientPhone: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Age *</label>
+                <label className="block text-xs font-medium text-gray-700 mb-0.5">Age *</label>
                 <input
                   type="number"
                   min="1"
@@ -575,15 +576,15 @@ const AssistantBookingPage: React.FC = () => {
                     const age = parseInt(e.target.value, 10);
                     setBookingData({ ...bookingData, patientAge: isNaN(age) ? 0 : age });
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Gender *</label>
+                <label className="block text-xs font-medium text-gray-700 mb-0.5">Gender *</label>
                 <select
                   value={bookingData.patientGender}
                   onChange={(e) => setBookingData({ ...bookingData, patientGender: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 >
                   <option value="">Select Gender</option>
                   <option value="Male">Male</option>
@@ -594,12 +595,12 @@ const AssistantBookingPage: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+              <label className="block text-xs font-medium text-gray-700 mb-0.5">Location</label>
               <input
                 type="text"
                 value={bookingData.patientLocation || ''}
                 onChange={(e) => setBookingData({ ...bookingData, patientLocation: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
 
@@ -609,55 +610,63 @@ const AssistantBookingPage: React.FC = () => {
                 id="isOldPatient"
                 checked={bookingData.isOldPatient}
                 onChange={(e) => setBookingData({ ...bookingData, isOldPatient: e.target.checked })}
-                className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                className="h-3.5 w-3.5 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
               />
-              <label htmlFor="isOldPatient" className="text-sm text-gray-700">
+              <label htmlFor="isOldPatient" className="text-xs text-gray-700">
                 Is this a returning patient?
               </label>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Reason for Visit</label>
+              <label className="block text-xs font-medium text-gray-700 mb-0.5">Reason for Visit</label>
               <textarea
                 value={bookingData.reasonForVisit || ''}
                 onChange={(e) => setBookingData({ ...bookingData, reasonForVisit: e.target.value })}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                rows={2}
+                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+              <label className="block text-xs font-medium text-gray-700 mb-0.5">Notes</label>
               <textarea
                 value={bookingData.notes || ''}
                 onChange={(e) => setBookingData({ ...bookingData, notes: e.target.value })}
                 rows={2}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
               />
             </div>
 
-            <div className="bg-yellow-50 p-3 rounded-md border border-yellow-200">
-              <p className="text-sm text-gray-700">
+            <div className="bg-yellow-50 p-2 rounded-md border border-yellow-200">
+              <p className="text-xs text-gray-700">
                 <span className="font-medium">Consultation Fee:</span> ${bookingData.doctorFee}
               </p>
             </div>
 
-            <div className="flex justify-end gap-3 pt-4">
-              <Button variant="secondary" onClick={() => {
-                setShowBookingModal(false);
-                setSelectedSlot(null);
-              }}>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button 
+                variant="secondary" 
+                onClick={() => {
+                  setShowBookingModal(false);
+                  setSelectedSlot(null);
+                }}
+                className="text-xs px-3 py-1.5"
+              >
                 Cancel
               </Button>
-              <Button onClick={handleBookAppointment} disabled={isBooking}>
+              <Button 
+                onClick={handleBookAppointment} 
+                disabled={isBooking}
+                className="text-xs px-3 py-1.5"
+              >
                 {isBooking ? (
                   <>
-                    <LoadingSpinner size="sm" className="mr-2" />
+                    <LoadingSpinner size="sm" className="mr-1.5" />
                     Booking...
                   </>
                 ) : (
                   <>
-                    <CheckCircleIcon className="h-4 w-4 mr-2" />
+                    <CheckCircleIcon className="h-3.5 w-3.5 mr-1.5" />
                     Book Appointment
                   </>
                 )}

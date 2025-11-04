@@ -8,6 +8,11 @@ export interface Assistant {
   qualification?: string;
   experience?: number;
   doctorId: number;
+  doctor?: {
+    id: number;
+    name: string;
+    specialization: string;
+  };
   userId?: number;
   isActive: boolean;
   createdAt: string;
@@ -45,7 +50,8 @@ export const assistantService = {
       const response = await api.get('/assistants/check-profile');
       return response.data;
     } catch (error: any) {
-      if (error.response?.status === 404) {
+      // If 403 (Forbidden) or 404 (Not Found), assume profile doesn't exist
+      if (error.response?.status === 404 || error.response?.status === 403) {
         return false;
       }
       throw error;
@@ -61,6 +67,12 @@ export const assistantService = {
   // Create my assistant profile (self-service)
   async createMyProfile(profileData: CreateMyAssistantProfileRequest): Promise<Assistant> {
     const response = await api.post('/assistants/my-profile', profileData);
+    return response.data;
+  },
+
+  // Update my assistant profile (self-service)
+  async updateMyProfile(profileData: { name?: string; qualification?: string; experience?: number }): Promise<Assistant> {
+    const response = await api.patch('/assistants/my-profile', profileData);
     return response.data;
   },
 

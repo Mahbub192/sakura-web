@@ -32,6 +32,10 @@ export const checkAssistantProfileExists = createAsyncThunk(
     try {
       return await assistantService.checkProfileExists();
     } catch (error: any) {
+      // If 403 (Forbidden) or 404 (Not Found), return false (profile doesn't exist)
+      if (error.response?.status === 403 || error.response?.status === 404) {
+        return false;
+      }
       return rejectWithValue(error.response?.data?.message || 'Failed to check profile');
     }
   }
@@ -55,6 +59,17 @@ export const createMyAssistantProfile = createAsyncThunk(
       return await assistantService.createMyProfile(profileData);
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to create profile');
+    }
+  }
+);
+
+export const updateMyAssistantProfile = createAsyncThunk(
+  'assistants/updateMyProfile',
+  async (profileData: { name?: string; qualification?: string; experience?: number }, { rejectWithValue }) => {
+    try {
+      return await assistantService.updateMyProfile(profileData);
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to update profile');
     }
   }
 );
@@ -186,6 +201,22 @@ const assistantSlice = createSlice({
         state.assistants.push(action.payload);
       })
       .addCase(createMyAssistantProfile.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      });
+
+    // Update My Profile
+    builder
+      .addCase(updateMyAssistantProfile.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(updateMyAssistantProfile.fulfilled, (state, action: PayloadAction<Assistant>) => {
+        state.isLoading = false;
+        state.currentAssistantProfile = action.payload;
+        state.profileExists = true;
+      })
+      .addCase(updateMyAssistantProfile.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
       });

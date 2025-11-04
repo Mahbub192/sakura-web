@@ -12,6 +12,8 @@ import {
   BuildingOfficeIcon,
   MagnifyingGlassIcon,
   CheckCircleIcon,
+  UsersIcon,
+  AcademicCapIcon,
 } from '@heroicons/react/24/outline';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { useAuth } from '../../hooks/useAuth';
@@ -43,6 +45,32 @@ const formatTimeTo12Hour = (time24: string): string => {
   }
 };
 
+// Helper function to calculate time in minutes from time string (HH:MM)
+const timeToMinutes = (timeStr: string): number => {
+  if (!timeStr) return 0;
+  const [hours, minutes] = timeStr.split(':').map(Number);
+  return hours * 60 + (minutes || 0);
+};
+
+// Helper function to format minutes to time string (HH:MM)
+const minutesToTime = (totalMinutes: number): string => {
+  const hours = Math.floor(totalMinutes / 60) % 24;
+  const minutes = totalMinutes % 60;
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+};
+
+// Helper function to calculate individual patient slot time
+const calculatePatientSlotTime = (startTime: string, endTime: string, slotIndex: number, totalPatients: number): string => {
+  if (!startTime || !endTime || totalPatients === 0) return startTime;
+  
+  const startMinutes = timeToMinutes(startTime);
+  const endMinutes = timeToMinutes(endTime);
+  const totalDuration = endMinutes - startMinutes;
+  const durationPerPatient = totalDuration / totalPatients;
+  const slotTimeMinutes = startMinutes + (durationPerPatient * (slotIndex - 1));
+  return minutesToTime(slotTimeMinutes);
+};
+
 const AssistantBookingPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const { isAssistant, user } = useAuth();
@@ -57,6 +85,7 @@ const AssistantBookingPage: React.FC = () => {
   const [selectedSlot, setSelectedSlot] = useState<Appointment | null>(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [isBooking, setIsBooking] = useState(false);
+  const [selectedSlotUniqueId, setSelectedSlotUniqueId] = React.useState<string | null>(null);
   
   const [bookingData, setBookingData] = useState<CreatePatientBookingRequest>({
     doctorId: 0,
@@ -102,13 +131,33 @@ const AssistantBookingPage: React.FC = () => {
     }
   }, [currentDoctorProfile]);
 
-  const handleSlotSelect = (slot: Appointment) => {
-    setSelectedSlot(slot);
+  const handleSlotSelect = (slot: any) => {
+    // Find the original appointment slot from filteredSlots
+    const originalSlot = filteredSlots.find(s => s.id === slot.id);
+    if (!originalSlot) return;
+    
+    // Convert time from 12-hour format to 24-hour format if needed
+    const time24 = slot.individualStartTime || slot.startTime;
+    // Ensure time is in HH:MM format (24-hour)
+    let timeValue = time24;
+    if (time24 && time24.includes(' ')) {
+      // If it's in 12-hour format, convert it
+      const [time, period] = time24.split(' ');
+      const [hours, minutes] = time.split(':');
+      let hour24 = parseInt(hours, 10);
+      if (period === 'PM' && hour24 !== 12) hour24 += 12;
+      if (period === 'AM' && hour24 === 12) hour24 = 0;
+      timeValue = `${hour24.toString().padStart(2, '0')}:${minutes}`;
+    }
+    
+    setSelectedSlot(originalSlot);
+    setSelectedSlotUniqueId(slot.uniqueId);
     setBookingData(prev => ({
       ...prev,
+      doctorId: currentDoctorProfile?.id || slot.doctorId || 0,
       appointmentId: slot.id,
       date: slot.date,
-      time: slot.startTime,
+      time: timeValue,
       doctorFee: slot.doctor?.consultationFee || currentDoctorProfile?.consultationFee || 0,
     }));
     setShowBookingModal(true);
@@ -126,14 +175,45 @@ const AssistantBookingPage: React.FC = () => {
       return;
     }
 
+    // Validate required fields for backend
+    if (!bookingData.doctorId || bookingData.doctorId <= 0) {
+      toast.error('Doctor ID is missing. Please select a slot again.');
+      return;
+    }
+
+    if (!bookingData.appointmentId || bookingData.appointmentId <= 0) {
+      toast.error('Appointment slot is missing. Please select a slot again.');
+      return;
+    }
+
     try {
       setIsBooking(true);
-      console.log('[AssistantBookingPage] Calling assistantBookingService.bookPatient with:', bookingData);
-      const result = await assistantBookingService.bookPatient(bookingData);
+      
+      // Prepare data for backend - ensure correct types
+      const requestData = {
+        doctorId: Number(bookingData.doctorId),
+        appointmentId: Number(bookingData.appointmentId),
+        patientName: bookingData.patientName.trim(),
+        patientEmail: bookingData.patientEmail.trim(),
+        patientPhone: bookingData.patientPhone.trim(),
+        patientAge: Number(bookingData.patientAge),
+        patientGender: bookingData.patientGender.trim(),
+        patientLocation: bookingData.patientLocation?.trim() || undefined,
+        isOldPatient: bookingData.isOldPatient || false,
+        doctorFee: Number(bookingData.doctorFee),
+        date: bookingData.date,
+        time: bookingData.time,
+        reasonForVisit: bookingData.reasonForVisit?.trim() || undefined,
+        notes: bookingData.notes?.trim() || undefined,
+      };
+      
+      console.log('[AssistantBookingPage] Calling assistantBookingService.bookPatient with:', requestData);
+      const result = await assistantBookingService.bookPatient(requestData);
       console.log('[AssistantBookingPage] Booking successful, result:', result);
       toast.success('Appointment booked successfully!');
       setShowBookingModal(false);
       setSelectedSlot(null);
+      setSelectedSlotUniqueId(null);
       setBookingData({
         doctorId: currentDoctorProfile?.id || 0,
         appointmentId: 0,
@@ -160,12 +240,31 @@ const AssistantBookingPage: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Booking error:', error);
-      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to book appointment';
-      toast.error(errorMessage);
       
-      // If 403 Forbidden, it might be a role issue
-      if (error?.response?.status === 403) {
+      // Handle validation errors (400 Bad Request)
+      if (error?.response?.status === 400) {
+        const errorData = error.response.data;
+        let errorMessage = 'Validation failed: ';
+        
+        if (Array.isArray(errorData.message)) {
+          // Backend validation errors array
+          errorMessage += errorData.message.join(', ');
+        } else if (typeof errorData.message === 'string') {
+          errorMessage = errorData.message;
+        } else if (errorData.message) {
+          errorMessage = JSON.stringify(errorData.message);
+        } else {
+          errorMessage = 'Please check all required fields are filled correctly';
+        }
+        
+        toast.error(errorMessage);
+        console.error('Validation errors:', errorData);
+      } else if (error?.response?.status === 403) {
         console.error('403 Forbidden - Check user role in JWT token');
+        toast.error('Access denied. Please check your permissions.');
+      } else {
+        const errorMessage = error?.response?.data?.message || error?.message || 'Failed to book appointment';
+        toast.error(errorMessage);
       }
     } finally {
       setIsBooking(false);
@@ -176,6 +275,30 @@ const AssistantBookingPage: React.FC = () => {
     if (!selectedDate) return true;
     const slotDate = new Date(slot.date).toISOString().split('T')[0];
     return slotDate === selectedDate;
+  });
+
+  // Create individual slots for each available patient spot
+  const individualSlots = filteredSlots.flatMap((slot) => {
+    const availableSpots = slot.maxPatients - (slot.currentBookings || 0);
+    const totalAvailable = slot.maxPatients;
+    
+    return Array.from({ length: availableSpots }, (_, index) => {
+      const slotPosition = index + 1;
+      const individualStartTime = calculatePatientSlotTime(
+        slot.startTime,
+        slot.endTime || slot.startTime,
+        slotPosition,
+        totalAvailable
+      );
+      
+      return {
+        ...slot,
+        uniqueId: `${slot.id}-${slotPosition}`,
+        slotIndex: slotPosition,
+        totalAvailable,
+        individualStartTime,
+      };
+    });
   });
 
   if (!isAssistant) {
@@ -277,47 +400,90 @@ const AssistantBookingPage: React.FC = () => {
               <div className="flex justify-center items-center py-12">
                 <LoadingSpinner size="lg" />
               </div>
-            ) : filteredSlots.length === 0 ? (
+            ) : individualSlots.length === 0 ? (
               <div className="text-center py-12">
                 <ClockIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-600 font-medium">No available slots found</p>
                 <p className="text-sm text-gray-500 mt-2">Try selecting a different date or clinic</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredSlots.map((slot, index) => (
-                  <motion.button
-                    key={slot.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                    onClick={() => handleSlotSelect(slot)}
-                    className="p-4 bg-gray-50 rounded-lg border-2 border-gray-200 hover:border-primary-500 hover:shadow-md transition-all text-left"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <ClockIcon className="h-4 w-4 text-primary-600" />
-                        <span className="font-bold text-gray-900">
-                          {formatTimeTo12Hour(slot.startTime)}
-                        </span>
-                      </div>
-                      <span className="text-xs bg-primary-100 text-primary-800 px-2 py-1 rounded-full">
-                        {slot.maxPatients - (slot.currentBookings || 0)} available
-                      </span>
-                    </div>
-                    <div className="text-xs text-gray-600 space-y-1">
-                      {slot.clinic && (
-                        <div className="flex items-center gap-1">
-                          <BuildingOfficeIcon className="h-3.5 w-3.5" />
-                          <span className="truncate">{slot.clinic.locationName}</span>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1">
+                  <ClockIcon className="h-4 w-4 text-primary-600" />
+                  Time Slots <span className="text-red-500">*</span>
+                </label>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-[500px] overflow-y-auto">
+                  {individualSlots.map((slot, index) => {
+                    const isSelected = selectedSlotUniqueId === slot.uniqueId;
+                    return (
+                      <motion.button
+                        key={slot.uniqueId}
+                        type="button"
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.01 }}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => handleSlotSelect(slot)}
+                        className={`
+                          p-3 rounded-lg border-2 transition-all duration-200 text-left relative min-h-[120px] w-full
+                          ${isSelected
+                            ? 'border-primary-500 bg-gradient-to-br from-primary-50 to-primary-100 shadow-lg ring-2 ring-primary-300'
+                            : 'border-gray-200 hover:border-primary-300 bg-white hover:shadow-md'
+                          }
+                        `}
+                      >
+                        {isSelected && (
+                          <div className="absolute top-1 right-1">
+                            <CheckCircleIcon className="h-3.5 w-3.5 text-primary-600" />
+                          </div>
+                        )}
+                        <div className="space-y-1.5">
+                          {/* Start Time - Prominent */}
+                          <div className="bg-gradient-to-r from-primary-50 to-secondary-50 rounded-md p-2 mb-1.5">
+                            <div className="flex items-center gap-1.5">
+                              <ClockIcon className="h-4 w-4 text-primary-600" />
+                              <p className={`text-xs font-bold ${isSelected ? 'text-primary-900' : 'text-gray-900'}`}>
+                                {formatTimeTo12Hour(slot.individualStartTime || slot.startTime)}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          {/* Patient Info */}
+                          <div className="flex items-center justify-between bg-primary-50 rounded-md px-2 py-1.5 border border-primary-200">
+                            <div className="flex items-center gap-1.5">
+                              <UsersIcon className="h-3.5 w-3.5 text-primary-600" />
+                              <span className="text-xs text-gray-600 font-medium">Patient:</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs font-bold text-green-600">
+                                {slot.slotIndex}
+                              </span>
+                              <span className="text-xs text-gray-400">/</span>
+                              <span className="text-xs font-bold text-gray-700">
+                                {slot.totalAvailable}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          {/* Doctor Name */}
+                          <div className="flex items-center gap-1">
+                            <AcademicCapIcon className="h-3 w-3 text-gray-500" />
+                            <p className="text-xs text-gray-600 truncate">Dr. {currentDoctorProfile?.name?.split(' ')[0] || 'Unknown'}</p>
+                          </div>
+                          
+                          {/* Price */}
+                          <div className="flex items-center justify-between pt-1 border-t border-gray-200">
+                            <span className="text-xs text-gray-500">Fee:</span>
+                            <p className="text-xs font-bold text-primary-600">
+                              ${currentDoctorProfile?.consultationFee || 'N/A'}
+                            </p>
+                          </div>
                         </div>
-                      )}
-                      <div className="flex items-center gap-1">
-                        <span>Fee: ${slot.doctor?.consultationFee || currentDoctorProfile.consultationFee}</span>
-                      </div>
-                    </div>
-                  </motion.button>
-                ))}
+                      </motion.button>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </motion.div>
@@ -390,7 +556,10 @@ const AssistantBookingPage: React.FC = () => {
                   min="1"
                   max="150"
                   value={bookingData.patientAge || ''}
-                  onChange={(e) => setBookingData({ ...bookingData, patientAge: parseInt(e.target.value) || 0 })}
+                  onChange={(e) => {
+                    const age = parseInt(e.target.value, 10);
+                    setBookingData({ ...bookingData, patientAge: isNaN(age) ? 0 : age });
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>

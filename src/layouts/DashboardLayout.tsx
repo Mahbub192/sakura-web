@@ -28,7 +28,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   }, []);
 
   return (
-    <div className="h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/30 flex overflow-hidden relative">
+    <div className="h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/30 flex flex-col overflow-hidden relative">
       {/* Background decorative elements with animation */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div
@@ -96,50 +96,54 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
         )}
       </AnimatePresence>
 
-      {/* Sidebar */}
-      <Sidebar 
-        sidebarOpen={sidebarOpen} 
-        setSidebarOpen={setSidebarOpen}
-        userRole={user?.role || 'User'}
-      />
-
-      {/* Main content wrapper */}
-      <div className="flex-1 flex flex-col overflow-hidden relative z-10">
-        {/* Header with enhanced glass effect */}
+      {/* Full Width Header - Above everything */}
+      <motion.div
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.3 }}
+        className="relative z-50 w-full"
+        style={{ height: '64px' }}
+      >
         <motion.div
-          initial={{ y: -20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.3 }}
-          className="relative"
-        >
-          <motion.div
-            animate={{
-              background: isScrolled
-                ? 'rgba(255, 255, 255, 0.95)'
-                : 'rgba(255, 255, 255, 0.85)',
-              boxShadow: isScrolled
-                ? '0 4px 20px rgba(0, 0, 0, 0.08)'
-                : '0 2px 10px rgba(0, 0, 0, 0.04)',
-            }}
-            transition={{ duration: 0.3 }}
-            className="absolute inset-0 backdrop-blur-xl border-b border-gray-200/50"
-          />
-          <div className="relative">
-            <Header 
-              setSidebarOpen={setSidebarOpen}
-              user={user}
-            />
-          </div>
-        </motion.div>
-        
-        {/* Main content area with scrollable container */}
-        <main 
-          className="flex-1 relative overflow-y-auto focus:outline-none max-h-screen"
-          onScroll={(e) => {
-            const target = e.target as HTMLElement;
-            setIsScrolled(target.scrollTop > 10);
+          animate={{
+            background: isScrolled
+              ? 'rgba(255, 255, 255, 0.95)'
+              : 'rgba(255, 255, 255, 0.85)',
+            boxShadow: isScrolled
+              ? '0 4px 20px rgba(0, 0, 0, 0.08)'
+              : '0 2px 10px rgba(0, 0, 0, 0.04)',
           }}
-        >
+          transition={{ duration: 0.3 }}
+          className="absolute inset-0 backdrop-blur-xl border-b border-gray-200/50"
+        />
+        <div className="relative h-full">
+          <Header 
+            setSidebarOpen={setSidebarOpen}
+            user={user}
+          />
+        </div>
+      </motion.div>
+
+      {/* Content Area Below Header - No Gap */}
+      <div className="flex-1 flex overflow-hidden relative z-10" style={{ height: 'calc(100vh - 64px)' }}>
+        {/* Sidebar */}
+        <Sidebar 
+          sidebarOpen={sidebarOpen} 
+          setSidebarOpen={setSidebarOpen}
+          userRole={user?.role || 'User'}
+        />
+
+        {/* Main content wrapper */}
+        <div className="flex-1 flex flex-col overflow-hidden relative z-10">
+        
+          {/* Main content area with scrollable container */}
+          <main 
+            className="flex-1 relative overflow-y-auto focus:outline-none"
+            onScroll={(e) => {
+              const target = e.target as HTMLElement;
+              setIsScrolled(target.scrollTop > 10);
+            }}
+          >
           {/* Enhanced custom scrollbar styling */}
           <style>{`
             main::-webkit-scrollbar {
@@ -180,7 +184,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
               </motion.div>
             </div>
           </div>
-        </main>
+          </main>
+        </div>
       </div>
 
       {/* Global loading overlay with modern design */}

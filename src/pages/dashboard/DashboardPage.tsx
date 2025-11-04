@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
@@ -13,13 +13,31 @@ import {
   ArrowRightIcon,
   EyeIcon,
   PlusCircleIcon,
+  CurrencyDollarIcon,
+  CheckCircleIcon,
+  XCircleIcon,
 } from '@heroicons/react/24/outline';
+import { 
+  LineChart, 
+  Line, 
+  PieChart, 
+  Pie, 
+  Cell, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  Legend, 
+  ResponsiveContainer 
+} from 'recharts';
+import { format } from 'date-fns';
 import { useAuth } from '../../hooks/useAuth';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
-import { fetchAppointments } from '../../store/slices/appointmentSlice';
+import { fetchAppointments, fetchTokenAppointments } from '../../store/slices/appointmentSlice';
 import { fetchDoctors, checkDoctorProfileExists } from '../../store/slices/doctorSlice';
 import { fetchMyAppointments, fetchUpcomingAppointments } from '../../store/slices/patientSlice';
 import { checkAssistantProfileExists } from '../../store/slices/assistantSlice';
+import { globalDashboardService } from '../../services/globalDashboardService';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 
 interface StatCardProps {
@@ -67,6 +85,9 @@ const DashboardPage: React.FC = () => {
   const { doctors, isLoading: doctorsLoading } = useAppSelector((state) => state.doctors);
   const { myAppointments, upcomingAppointments, isLoading: patientsLoading } = useAppSelector((state) => state.patients);
   const [refreshing, setRefreshing] = useState(false);
+  const [globalStats, setGlobalStats] = useState<any>(null);
+  const [weeklyData, setWeeklyData] = useState<any[]>([]);
+  const [statusData, setStatusData] = useState<any[]>([]);
 
   const isLoading = appointmentsLoading || doctorsLoading || patientsLoading;
 
@@ -103,11 +124,22 @@ const DashboardPage: React.FC = () => {
   const fetchDashboardData = async () => {
     try {
       setRefreshing(true);
-    if (isAdmin || isDoctor || isAssistant) {
+      if (isAdmin || isDoctor || isAssistant) {
         await Promise.all([
           dispatch(fetchAppointments({})).unwrap(),
           dispatch(fetchDoctors()).unwrap(),
+          dispatch(fetchTokenAppointments({})).unwrap(),
         ]);
+        
+        // Fetch global stats for admin/doctor
+        if (isAdmin || isDoctor) {
+          try {
+            const stats = await globalDashboardService.getGlobalStats();
+            setGlobalStats(stats);
+          } catch (error) {
+            console.error('Failed to fetch global stats:', error);
+          }
+        }
       } else if (isPatient) {
         await Promise.all([
           dispatch(fetchMyAppointments()).unwrap(),
@@ -121,6 +153,52 @@ const DashboardPage: React.FC = () => {
       setRefreshing(false);
     }
   };
+
+  // Calculate weekly data for charts
+  const calculateWeeklyData = useMemo(() => {
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const today = new Date();
+    const weekData = days.map((day, index) => {
+      const date = new Date(today);
+      date.setDate(today.getDate() - (6 - index));
+      const dateStr = format(date, 'yyyy-MM-dd');
+      
+      const dayAppointments = tokenAppointments.filter(apt => apt.date === dateStr);
+      return {
+        day,
+        appointments: dayAppointments.length,
+        confirmed: dayAppointments.filter(apt => apt.status === 'Confirmed').length,
+        completed: dayAppointments.filter(apt => apt.status === 'Completed').length,
+      };
+    });
+    return weekData;
+  }, [tokenAppointments]);
+
+  // Calculate status distribution
+  const calculateStatusData = useMemo(() => {
+    const statusCounts: Record<string, number> = {};
+    tokenAppointments.forEach(apt => {
+      statusCounts[apt.status] = (statusCounts[apt.status] || 0) + 1;
+    });
+    
+    const colors = {
+      'Confirmed': '#3B82F6',
+      'Completed': '#10B981',
+      'Cancelled': '#EF4444',
+      'Pending': '#F59E0B',
+    };
+    
+    return Object.entries(statusCounts).map(([name, value]) => ({
+      name,
+      value,
+      color: colors[name as keyof typeof colors] || '#6B7280',
+    }));
+  }, [tokenAppointments]);
+
+  useEffect(() => {
+    setWeeklyData(calculateWeeklyData);
+    setStatusData(calculateStatusData);
+  }, [calculateWeeklyData, calculateStatusData]);
 
   const getWelcomeMessage = () => {
     const time = new Date().getHours();
@@ -311,11 +389,284 @@ const DashboardPage: React.FC = () => {
         ))}
       </div>
 
+      {/* Charts Section - Admin/Doctor */}
+      {(isAdmin || isDoctor) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Weekly Appointments Chart */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="bg-white rounded-xl shadow-md p-4 border border-gray-100"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <ChartBarIcon className="h-5 w-5 text-primary-600" />
+                Weekly Appointments
+              </h3>
+            </div>
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart data={weeklyData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                <XAxis dataKey="day" stroke="#6B7280" fontSize={12} />
+                <YAxis stroke="#6B7280" fontSize={12} />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#fff', 
+                    border: '1px solid #E5E7EB', 
+                    borderRadius: '8px',
+                    fontSize: '12px'
+                  }} 
+                />
+                <Legend />
+                <Line 
+                  type="monotone" 
+                  dataKey="appointments" 
+                  stroke="#3B82F6" 
+                  strokeWidth={2}
+                  name="Total"
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="confirmed" 
+                  stroke="#10B981" 
+                  strokeWidth={2}
+                  name="Confirmed"
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="completed" 
+                  stroke="#8B5CF6" 
+                  strokeWidth={2}
+                  name="Completed"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </motion.div>
+
+          {/* Status Distribution Chart */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="bg-white rounded-xl shadow-md p-4 border border-gray-100"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <ChartBarIcon className="h-5 w-5 text-primary-600" />
+                Status Distribution
+              </h3>
+            </div>
+            <ResponsiveContainer width="100%" height={250}>
+              <PieChart>
+                <Pie
+                  data={statusData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={true}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {statusData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Admin Summary Section */}
+      {isAdmin && globalStats && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="bg-white rounded-xl shadow-md p-4 border border-gray-100"
+        >
+          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <SparklesIcon className="h-5 w-5 text-primary-600" />
+            System Summary
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-3 border border-blue-200">
+              <div className="flex items-center justify-between mb-2">
+                <HeartIcon className="h-5 w-5 text-blue-600" />
+                <span className="text-xs font-medium text-blue-700">Total Doctors</span>
+              </div>
+              <p className="text-2xl font-bold text-blue-900">{globalStats.totalDoctors}</p>
+            </div>
+            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-3 border border-green-200">
+              <div className="flex items-center justify-between mb-2">
+                <CalendarIcon className="h-5 w-5 text-green-600" />
+                <span className="text-xs font-medium text-green-700">Today's Appointments</span>
+              </div>
+              <p className="text-2xl font-bold text-green-900">{globalStats.totalAppointmentsToday}</p>
+            </div>
+            <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-3 border border-purple-200">
+              <div className="flex items-center justify-between mb-2">
+                <UsersIcon className="h-5 w-5 text-purple-600" />
+                <span className="text-xs font-medium text-purple-700">Today's Patients</span>
+              </div>
+              <p className="text-2xl font-bold text-purple-900">{globalStats.totalPatientsToday}</p>
+            </div>
+            <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-3 border border-orange-200">
+              <div className="flex items-center justify-between mb-2">
+                <CurrencyDollarIcon className="h-5 w-5 text-orange-600" />
+                <span className="text-xs font-medium text-orange-700">Total Revenue</span>
+              </div>
+              <p className="text-2xl font-bold text-orange-900">${globalStats.totalRevenue?.toFixed(0) || '0'}</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+            <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg">
+              <CheckCircleIcon className="h-4 w-4 text-blue-600" />
+              <div>
+                <p className="text-xs text-gray-600">Confirmed</p>
+                <p className="text-sm font-bold text-gray-900">{globalStats.confirmedAppointments}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 p-2 bg-yellow-50 rounded-lg">
+              <ClockIcon className="h-4 w-4 text-yellow-600" />
+              <div>
+                <p className="text-xs text-gray-600">Pending</p>
+                <p className="text-sm font-bold text-gray-900">{globalStats.pendingAppointments}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 p-2 bg-green-50 rounded-lg">
+              <CheckCircleIcon className="h-4 w-4 text-green-600" />
+              <div>
+                <p className="text-xs text-gray-600">Completed</p>
+                <p className="text-sm font-bold text-gray-900">{globalStats.completedAppointments}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 p-2 bg-red-50 rounded-lg">
+              <XCircleIcon className="h-4 w-4 text-red-600" />
+              <div>
+                <p className="text-xs text-gray-600">Cancelled</p>
+                <p className="text-sm font-bold text-gray-900">{globalStats.cancelledAppointments}</p>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Doctor Summary Section */}
+      {isDoctor && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="bg-white rounded-xl shadow-md p-4 border border-gray-100"
+        >
+          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <SparklesIcon className="h-5 w-5 text-primary-600" />
+            Your Performance Summary
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-3 border border-blue-200">
+              <div className="flex items-center justify-between mb-2">
+                <CalendarIcon className="h-5 w-5 text-blue-600" />
+                <span className="text-xs font-medium text-blue-700">Today</span>
+              </div>
+              <p className="text-2xl font-bold text-blue-900">
+                {tokenAppointments.filter(apt => apt.date === new Date().toISOString().split('T')[0]).length}
+              </p>
+              <p className="text-xs text-blue-700 mt-1">Appointments</p>
+            </div>
+            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-3 border border-green-200">
+              <div className="flex items-center justify-between mb-2">
+                <CheckCircleIcon className="h-5 w-5 text-green-600" />
+                <span className="text-xs font-medium text-green-700">This Week</span>
+              </div>
+              <p className="text-2xl font-bold text-green-900">
+                {tokenAppointments.filter(apt => {
+                  const aptDate = new Date(apt.date);
+                  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+                  return aptDate >= weekAgo && apt.status === 'Completed';
+                }).length}
+              </p>
+              <p className="text-xs text-green-700 mt-1">Completed</p>
+            </div>
+            <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-3 border border-purple-200">
+              <div className="flex items-center justify-between mb-2">
+                <ClockIcon className="h-5 w-5 text-purple-600" />
+                <span className="text-xs font-medium text-purple-700">Available</span>
+              </div>
+              <p className="text-2xl font-bold text-purple-900">
+                {appointments.filter(apt => apt.status === 'Available').length}
+              </p>
+              <p className="text-xs text-purple-700 mt-1">Slots</p>
+            </div>
+            <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-3 border border-orange-200">
+              <div className="flex items-center justify-between mb-2">
+                <UserGroupIcon className="h-5 w-5 text-orange-600" />
+                <span className="text-xs font-medium text-orange-700">Total</span>
+              </div>
+              <p className="text-2xl font-bold text-orange-900">{tokenAppointments.length}</p>
+              <p className="text-xs text-orange-700 mt-1">Patients</p>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Recent Appointments Table */}
+      {(isAdmin || isDoctor || isAssistant) && tokenAppointments.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+          className="bg-white rounded-xl shadow-md p-4 border border-gray-100"
+        >
+          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <CalendarIcon className="h-5 w-5 text-primary-600" />
+            Recent Appointments
+          </h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-200">
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700">Patient</th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700">Date</th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700">Time</th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700">Status</th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700">Token</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tokenAppointments.slice(0, 10).map((apt) => (
+                  <tr key={apt.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                    <td className="px-3 py-2 text-gray-900 font-medium">{apt.patientName}</td>
+                    <td className="px-3 py-2 text-gray-600">{format(new Date(apt.date), 'MMM dd, yyyy')}</td>
+                    <td className="px-3 py-2 text-gray-600">{apt.time || 'N/A'}</td>
+                    <td className="px-3 py-2">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        apt.status === 'Confirmed' ? 'bg-blue-100 text-blue-700' :
+                        apt.status === 'Completed' ? 'bg-green-100 text-green-700' :
+                        apt.status === 'Cancelled' ? 'bg-red-100 text-red-700' :
+                        'bg-yellow-100 text-yellow-700'
+                      }`}>
+                        {apt.status}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 text-gray-900 font-semibold">#{apt.tokenNumber}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </motion.div>
+      )}
+
       {/* Quick Actions */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
+        transition={{ delay: 0.7 }}
         className="bg-white rounded-xl shadow-md p-4 border border-gray-100"
       >
         <div className="flex items-center justify-between mb-3">

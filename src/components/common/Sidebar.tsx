@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   HomeIcon, 
   CalendarIcon, 
@@ -67,117 +67,162 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen, userRole
     <>
       {/* Desktop Sidebar */}
       <div className="hidden lg:flex lg:flex-shrink-0">
-        <div className="flex flex-col w-64">
-          <div className="flex flex-col flex-grow bg-white border-r border-gray-200 pt-5 pb-4 overflow-y-auto">
-            <div className="flex items-center flex-shrink-0 px-4 mb-8">
-              <div className="bg-primary-600 p-2 rounded-lg">
-                <HeartIcon className="h-8 w-8 text-white" />
-              </div>
-              <div className="ml-3">
-                <h1 className="text-xl font-bold text-gray-900">HealthCare</h1>
-                <p className="text-sm text-gray-500">Management</p>
-              </div>
-            </div>
-            
-            <nav className="mt-5 flex-1 px-2 space-y-1">
-              {navigation.map((item) => {
+        <div className="flex flex-col w-64 h-full">
+          <div className="flex flex-col flex-grow bg-gradient-to-b from-white to-gray-50/50 border-r border-gray-200 shadow-sm overflow-y-auto">
+            <nav className="flex-1 px-3 pt-3 space-y-1">
+              {navigation.map((item, index) => {
                 const isActive = location.pathname === item.href;
                 return (
-                  <Link
+                  <motion.div
                     key={item.name}
-                    to={item.href}
-                    className={`
-                      group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-200
-                      ${isActive
-                        ? 'bg-primary-100 text-primary-900 border-r-2 border-primary-500'
-                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                      }
-                    `}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.05 }}
                   >
-                    <item.icon
-                      className={`mr-3 flex-shrink-0 h-5 w-5 ${
-                        isActive ? 'text-primary-500' : 'text-gray-400 group-hover:text-gray-500'
-                      }`}
-                    />
-                    {item.name}
-                  </Link>
+                    <Link
+                      to={item.href}
+                      className={`
+                        group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 relative
+                        ${isActive
+                          ? 'bg-gradient-to-r from-primary-50 to-primary-100/50 text-primary-700 shadow-sm border-l-3 border-primary-500'
+                          : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                        }
+                      `}
+                      style={isActive ? { borderLeftWidth: '3px' } : {}}
+                    >
+                      {isActive && (
+                        <motion.div
+                          layoutId="activeIndicator"
+                          className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-primary-500 to-primary-600 rounded-r-full"
+                          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                        />
+                      )}
+                      <item.icon
+                        className={`mr-3 flex-shrink-0 h-5 w-5 transition-colors ${
+                          isActive ? 'text-primary-600' : 'text-gray-500 group-hover:text-gray-700'
+                        }`}
+                      />
+                      <span className="flex-1">{item.name}</span>
+                      {isActive && (
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          className="w-1.5 h-1.5 rounded-full bg-primary-600"
+                        />
+                      )}
+                    </Link>
+                  </motion.div>
                 );
               })}
               
-              <button
-                onClick={handleLogout}
-                className="group flex items-center w-full px-2 py-2 text-sm font-medium text-gray-600 rounded-md hover:bg-red-50 hover:text-red-700 transition-colors duration-200"
+              <div className="border-t border-gray-200 my-2"></div>
+              
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: navigation.length * 0.05 }}
               >
-                <LogoutIcon className="mr-3 flex-shrink-0 h-5 w-5 text-gray-400 group-hover:text-red-500" />
-                Logout
-              </button>
+                <button
+                  onClick={handleLogout}
+                  className="group flex items-center w-full px-3 py-2.5 text-sm font-medium text-gray-700 rounded-lg hover:bg-red-50 hover:text-red-700 transition-all duration-200"
+                >
+                  <LogoutIcon className="mr-3 flex-shrink-0 h-5 w-5 text-gray-500 group-hover:text-red-600 transition-colors" />
+                  <span className="flex-1 text-left">Logout</span>
+                </button>
+              </motion.div>
             </nav>
           </div>
         </div>
       </div>
 
       {/* Mobile Sidebar */}
-      <motion.div
-        variants={sidebarVariants}
-        animate={sidebarOpen ? 'open' : 'closed'}
-        transition={{ duration: 0.3 }}
-        className="lg:hidden fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg"
-      >
-        <div className="flex flex-col h-full">
-          <div className="flex items-center justify-between flex-shrink-0 p-4 border-b border-gray-200">
-            <div className="flex items-center">
-              <div className="bg-primary-600 p-2 rounded-lg">
-                <HeartIcon className="h-6 w-6 text-white" />
-              </div>
-              <div className="ml-3">
-                <h1 className="text-lg font-bold text-gray-900">HealthCare</h1>
-                <p className="text-xs text-gray-500">Management</p>
-              </div>
-            </div>
-            <button
-              onClick={() => setSidebarOpen(false)}
-              className="p-1 rounded-md hover:bg-gray-100"
-            >
-              <XIcon className="h-6 w-6 text-gray-500" />
-            </button>
-          </div>
-          
-          <nav className="mt-5 flex-1 px-2 space-y-1">
-            {navigation.map((item) => {
-              const isActive = location.pathname === item.href;
-              return (
-                <Link
-                  key={item.name}
-                  to={item.href}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <motion.div
+            variants={sidebarVariants}
+            initial="closed"
+            animate={sidebarOpen ? 'open' : 'closed'}
+            exit="closed"
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="lg:hidden fixed inset-y-0 left-0 z-50 w-64 bg-gradient-to-b from-white to-gray-50/50 shadow-2xl border-r border-gray-200"
+          >
+            <div className="flex flex-col h-full">
+              <div className="flex items-center justify-end flex-shrink-0 p-4 border-b border-gray-200 bg-white/80 backdrop-blur-sm">
+                <button
                   onClick={() => setSidebarOpen(false)}
-                  className={`
-                    group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-200
-                    ${isActive
-                      ? 'bg-primary-100 text-primary-900'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                    }
-                  `}
+                  className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
                 >
-                  <item.icon
-                    className={`mr-3 flex-shrink-0 h-5 w-5 ${
-                      isActive ? 'text-primary-500' : 'text-gray-400 group-hover:text-gray-500'
-                    }`}
-                  />
-                  {item.name}
-                </Link>
-              );
-            })}
-            
-            <button
-              onClick={handleLogout}
-              className="group flex items-center w-full px-2 py-2 text-sm font-medium text-gray-600 rounded-md hover:bg-red-50 hover:text-red-700 transition-colors duration-200"
-            >
-              <LogoutIcon className="mr-3 flex-shrink-0 h-5 w-5 text-gray-400 group-hover:text-red-500" />
-              Logout
-            </button>
-          </nav>
-        </div>
-      </motion.div>
+                  <XIcon className="h-6 w-6 text-gray-500" />
+                </button>
+              </div>
+              
+              <nav className="mt-2 flex-1 px-3 space-y-1 overflow-y-auto">
+                {navigation.map((item, index) => {
+                  const isActive = location.pathname === item.href;
+                  return (
+                    <motion.div
+                      key={item.name}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                    >
+                      <Link
+                        to={item.href}
+                        onClick={() => setSidebarOpen(false)}
+                        className={`
+                          group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 relative
+                          ${isActive
+                            ? 'bg-gradient-to-r from-primary-50 to-primary-100/50 text-primary-700 shadow-sm border-l-3 border-primary-500'
+                            : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                          }
+                        `}
+                        style={isActive ? { borderLeftWidth: '3px' } : {}}
+                      >
+                        {isActive && (
+                          <motion.div
+                            layoutId="activeIndicatorMobile"
+                            className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-primary-500 to-primary-600 rounded-r-full"
+                            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                          />
+                        )}
+                        <item.icon
+                          className={`mr-3 flex-shrink-0 h-5 w-5 transition-colors ${
+                            isActive ? 'text-primary-600' : 'text-gray-500 group-hover:text-gray-700'
+                          }`}
+                        />
+                        <span className="flex-1">{item.name}</span>
+                        {isActive && (
+                          <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            className="w-1.5 h-1.5 rounded-full bg-primary-600"
+                          />
+                        )}
+                      </Link>
+                    </motion.div>
+                  );
+                })}
+                
+                <div className="border-t border-gray-200 my-2"></div>
+                
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: navigation.length * 0.05 }}
+                >
+                  <button
+                    onClick={handleLogout}
+                    className="group flex items-center w-full px-3 py-2.5 text-sm font-medium text-gray-700 rounded-lg hover:bg-red-50 hover:text-red-700 transition-all duration-200"
+                  >
+                    <LogoutIcon className="mr-3 flex-shrink-0 h-5 w-5 text-gray-500 group-hover:text-red-600 transition-colors" />
+                    <span className="flex-1 text-left">Logout</span>
+                  </button>
+                </motion.div>
+              </nav>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 };

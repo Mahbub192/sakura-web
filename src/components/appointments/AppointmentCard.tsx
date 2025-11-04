@@ -44,66 +44,71 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -2 }}
-      className="bg-white border border-gray-200 rounded-xl p-6 shadow-soft hover:shadow-medium transition-all duration-200"
+      className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm hover:shadow-md transition-all duration-200"
     >
       {/* Header */}
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center space-x-3">
-          <div className="bg-primary-100 p-2 rounded-lg">
-            <CalendarIcon className="h-5 w-5 text-primary-600" />
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <div className="bg-gradient-to-br from-primary-100 to-primary-50 p-1.5 rounded-md">
+            <CalendarIcon className="h-4 w-4 text-primary-600" />
           </div>
-          <div>
-            <h3 className="font-semibold text-gray-900">Dr. {appointment.doctor.name}</h3>
-            <p className="text-sm text-gray-600">{appointment.doctor.specialization}</p>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm font-bold text-gray-900 truncate">Dr. {appointment.doctor?.name || 'Unknown'}</h3>
+            <p className="text-xs text-gray-500 truncate">{appointment.doctor?.specialization || ''}</p>
           </div>
         </div>
-        <span className={`badge ${getStatusColor(appointment.status)}`}>
+        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap ${
+          appointment.status === 'Available' ? 'bg-green-100 text-green-700' :
+          appointment.status === 'Booked' ? 'bg-yellow-100 text-yellow-700' :
+          appointment.status === 'Completed' ? 'bg-blue-100 text-blue-700' :
+          'bg-red-100 text-red-700'
+        }`}>
           {appointment.status}
         </span>
       </div>
 
       {/* Details */}
-      <div className="space-y-3">
-        <div className="flex items-center text-sm text-gray-600">
-          <CalendarIcon className="h-4 w-4 mr-2" />
-          <span>{format(new Date(appointment.date), 'MMM dd, yyyy')}</span>
+      <div className="space-y-1.5 mb-3">
+        <div className="flex items-center gap-1.5 text-xs text-gray-600">
+          <CalendarIcon className="h-3.5 w-3.5 text-primary-500 flex-shrink-0" />
+          <span className="truncate">{format(new Date(appointment.date), 'MMM dd, yyyy')}</span>
         </div>
         
-        <div className="flex items-center text-sm text-gray-600">
-          <ClockIcon className="h-4 w-4 mr-2" />
-          <span>{appointment.startTime} - {appointment.endTime} ({appointment.duration} min)</span>
+        <div className="flex items-center gap-1.5 text-xs text-gray-600">
+          <ClockIcon className="h-3.5 w-3.5 text-primary-500 flex-shrink-0" />
+          <span className="truncate">{appointment.startTime} - {appointment.endTime} ({appointment.duration} min)</span>
         </div>
         
-        <div className="flex items-center text-sm text-gray-600">
-          <MapPinIcon className="h-4 w-4 mr-2" />
-          <span>{appointment.clinic.locationName}</span>
+        <div className="flex items-center gap-1.5 text-xs text-gray-600">
+          <MapPinIcon className="h-3.5 w-3.5 text-primary-500 flex-shrink-0" />
+          <span className="truncate">{appointment.clinic?.locationName || 'N/A'}</span>
         </div>
         
-        <div className="flex items-center text-sm text-gray-600">
-          <UserGroupIcon className="h-4 w-4 mr-2" />
+        <div className="flex items-center gap-1.5 text-xs text-gray-600">
+          <UserGroupIcon className="h-3.5 w-3.5 text-primary-500 flex-shrink-0" />
           <span>{appointment.currentBookings}/{appointment.maxPatients} patients</span>
         </div>
         
-        <div className="flex items-center text-sm text-gray-600">
-          <CurrencyDollarIcon className="h-4 w-4 mr-2" />
-          <span>${appointment.doctor.consultationFee}</span>
+        <div className="flex items-center gap-1.5 text-xs text-gray-600">
+          <CurrencyDollarIcon className="h-3.5 w-3.5 text-primary-500 flex-shrink-0" />
+          <span className="font-semibold text-gray-900">${appointment.doctor?.consultationFee || '0.00'}</span>
         </div>
       </div>
 
       {/* Progress Bar */}
-      <div className="mt-4">
+      <div className="mb-3">
         <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
-          <span>Bookings</span>
-          <span>{appointment.currentBookings}/{appointment.maxPatients}</span>
+          <span className="font-medium">Bookings</span>
+          <span className="font-semibold">{appointment.currentBookings}/{appointment.maxPatients}</span>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-2">
+        <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
           <div
-            className={`h-2 rounded-full transition-all duration-300 ${
+            className={`h-1.5 rounded-full transition-all duration-300 ${
               appointment.currentBookings >= appointment.maxPatients
-                ? 'bg-error-500'
+                ? 'bg-red-500'
                 : appointment.currentBookings > 0
-                ? 'bg-warning-500'
-                : 'bg-success-500'
+                ? 'bg-orange-500'
+                : 'bg-green-500'
             }`}
             style={{
               width: `${Math.min((appointment.currentBookings / appointment.maxPatients) * 100, 100)}%`,
@@ -114,13 +119,13 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
 
       {/* Actions */}
       {canEditStatus && (
-        <div className="mt-4 pt-4 border-t border-gray-200">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-gray-700">Status:</span>
+        <div className="pt-2 border-t border-gray-200">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs font-medium text-gray-700">Status:</span>
             <select
               value={appointment.status}
               onChange={(e) => onStatusUpdate(appointment.id, e.target.value)}
-              className="text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="text-xs border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary-500 flex-1 max-w-[120px]"
             >
               <option value="Available">Available</option>
               <option value="Booked">Booked</option>

@@ -1,6 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
+import { 
+  LineChart, 
+  Line, 
+  PieChart, 
+  Pie, 
+  Cell, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  Legend, 
+  ResponsiveContainer 
+} from 'recharts';
 import { 
   CalendarIcon, 
   ClockIcon, 
@@ -14,6 +27,8 @@ import {
   XCircleIcon,
   ArrowDownTrayIcon,
   SparklesIcon,
+  ChartBarIcon,
+  ArrowTrendingUpIcon as TrendingUpIcon,
 } from '@heroicons/react/24/outline';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { useAuth } from '../../hooks/useAuth';
@@ -68,6 +83,66 @@ const AppointmentsPage: React.FC = () => {
   const [dateFilter, setDateFilter] = useState<string>('');
   const [refreshing, setRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState<'slots' | 'bookings'>('slots');
+
+  // Calculate weekly data for charts
+  const weeklyData = useMemo(() => {
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const today = new Date();
+    return days.map((day, index) => {
+      const date = new Date(today);
+      date.setDate(today.getDate() - (6 - index));
+      const dateStr = format(date, 'yyyy-MM-dd');
+      
+      const daySlots = appointments.filter(apt => apt.date === dateStr);
+      const dayBookings = tokenAppointments.filter(apt => apt.date === dateStr);
+      return {
+        day,
+        slots: daySlots.length,
+        bookings: dayBookings.length,
+      };
+    });
+  }, [appointments, tokenAppointments]);
+
+  // Calculate status distribution for slots
+  const slotStatusData = useMemo(() => {
+    const statusCounts: Record<string, number> = {};
+    appointments.forEach(apt => {
+      statusCounts[apt.status || 'Unknown'] = (statusCounts[apt.status || 'Unknown'] || 0) + 1;
+    });
+    
+    const colors = {
+      'Available': '#10B981',
+      'Booked': '#F59E0B',
+      'Completed': '#3B82F6',
+    };
+    
+    return Object.entries(statusCounts).map(([name, value]) => ({
+      name,
+      value,
+      color: colors[name as keyof typeof colors] || '#6B7280',
+    }));
+  }, [appointments]);
+
+  // Calculate booking status distribution
+  const bookingStatusData = useMemo(() => {
+    const statusCounts: Record<string, number> = {};
+    tokenAppointments.forEach(apt => {
+      statusCounts[apt.status] = (statusCounts[apt.status] || 0) + 1;
+    });
+    
+    const colors = {
+      'Confirmed': '#3B82F6',
+      'Completed': '#10B981',
+      'Cancelled': '#EF4444',
+      'Pending': '#F59E0B',
+    };
+    
+    return Object.entries(statusCounts).map(([name, value]) => ({
+      name,
+      value,
+      color: colors[name as keyof typeof colors] || '#6B7280',
+    }));
+  }, [tokenAppointments]);
 
   useEffect(() => {
     // Fetch initial data
@@ -216,7 +291,7 @@ const AppointmentsPage: React.FC = () => {
         className="space-y-4"
       >
         {/* Enhanced Header */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-primary-600 via-primary-700 to-secondary-600 rounded-xl p-5 text-white shadow-lg">
+        <div className="relative overflow-hidden bg-gradient-to-br from-primary-600 via-primary-700 to-secondary-600 rounded-lg p-3 text-white shadow-md">
           {/* Background Pattern */}
           <div className="absolute inset-0 opacity-10">
             <div className="absolute inset-0" style={{
@@ -226,40 +301,40 @@ const AppointmentsPage: React.FC = () => {
 
           <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <div className="flex items-center gap-2 mb-2">
-                <SparklesIcon className="h-5 w-5" />
-                <h1 className="text-2xl font-bold">Appointments Management</h1>
+              <div className="flex items-center gap-1.5 mb-1">
+                <SparklesIcon className="h-4 w-4" />
+                <h1 className="text-lg font-bold">Appointments Management</h1>
               </div>
-              <p className="text-sm text-primary-100">Manage appointment slots and patient bookings efficiently</p>
+              <p className="text-xs text-primary-100">Manage appointment slots and patient bookings efficiently</p>
             </div>
-            <div className="mt-4 sm:mt-0 flex flex-wrap gap-2">
+            <div className="mt-2 sm:mt-0 flex flex-wrap gap-1.5">
               <button
                 onClick={fetchAllData}
                 disabled={refreshing}
-                className="flex items-center gap-1.5 bg-white/20 backdrop-blur-sm hover:bg-white/30 rounded-lg px-3 py-1.5 text-sm transition-colors disabled:opacity-50"
+                className="flex items-center gap-1 bg-white/20 backdrop-blur-sm hover:bg-white/30 rounded-md px-2 py-1 text-xs transition-colors disabled:opacity-50"
               >
                 {refreshing ? (
                   <LoadingSpinner size="sm" />
                 ) : (
-                  <ArrowPathIcon className="h-4 w-4" />
+                  <ArrowPathIcon className="h-3 w-3" />
                 )}
                 Refresh
               </button>
               <Button
                 variant={showCalendarView ? 'primary' : 'outline'}
                 onClick={() => setShowCalendarView(!showCalendarView)}
-                className="bg-white/20 backdrop-blur-sm hover:bg-white/30 border-white/30 text-white text-sm px-3 py-1.5"
+                className="bg-white/20 backdrop-blur-sm hover:bg-white/30 border-white/30 text-white text-xs px-2 py-1"
               >
-                <CalendarIcon className="h-4 w-4 mr-1.5" />
-                Calendar View
+                <CalendarIcon className="h-3 w-3 mr-1" />
+                Calendar
               </Button>
               {(isAdmin || isDoctor) && (
                 <Button
                   variant="primary"
                   onClick={() => setShowCreateModal(true)}
-                  className="bg-white text-primary-600 hover:bg-gray-50 text-sm px-3 py-1.5"
+                  className="bg-white text-primary-600 hover:bg-gray-50 text-xs px-2 py-1"
                 >
-                  <PlusIcon className="h-4 w-4 mr-1.5" />
+                  <PlusIcon className="h-3 w-3 mr-1" />
                   Create Slot
                 </Button>
               )}
@@ -268,7 +343,7 @@ const AppointmentsPage: React.FC = () => {
         </div>
 
         {/* Enhanced Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
           {stats.map((stat, index) => (
             <motion.div
               key={stat.title}
@@ -276,46 +351,141 @@ const AppointmentsPage: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
               whileHover={{ scale: 1.02, y: -2 }}
-              className="group relative bg-white rounded-xl shadow-md p-4 border border-gray-100 hover:shadow-lg transition-all duration-300 overflow-hidden"
+              className="group relative bg-white rounded-lg shadow-sm p-3 border border-gray-100 hover:shadow-md transition-all duration-300 overflow-hidden cursor-pointer"
             >
               {/* Gradient Background */}
-              <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${stat.color} opacity-5 rounded-full -mr-12 -mt-12`}></div>
+              <div className={`absolute top-0 right-0 w-16 h-16 bg-gradient-to-br ${stat.color} opacity-5 rounded-full -mr-8 -mt-8`}></div>
               
               <div className="relative z-10">
-                <div className="flex items-start justify-between mb-2">
-                  <div className={`p-2.5 rounded-lg bg-gradient-to-br ${stat.color} shadow-md`}>
-                    <stat.icon className="h-5 w-5 text-white" />
+                <div className="flex items-start justify-between mb-1.5">
+                  <div className={`p-2 rounded-md bg-gradient-to-br ${stat.color} shadow-sm group-hover:scale-110 transition-transform`}>
+                    <stat.icon className="h-4 w-4 text-white" />
                   </div>
-                  <div className={`${stat.bg} px-2 py-0.5 rounded-full`}>
-                    <span className={`text-xs font-semibold ${stat.textColor}`}>
+                  <div className={`${stat.bg} px-1.5 py-0.5 rounded-full`}>
+                    <span className={`text-xs font-medium ${stat.textColor}`}>
                       {stat.subtitle}
                     </span>
                   </div>
                 </div>
-                <h3 className="text-xs font-medium text-gray-600 mb-1">{stat.title}</h3>
+                <h3 className="text-xs font-medium text-gray-600 mb-0.5">{stat.title}</h3>
                 <p className="text-xl font-bold text-gray-900">{stat.value}</p>
               </div>
             </motion.div>
           ))}
         </div>
 
+        {/* Charts Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          {/* Weekly Trends Chart */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="bg-white rounded-lg shadow-sm p-3 border border-gray-100"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
+                <ChartBarIcon className="h-4 w-4 text-primary-600" />
+                Weekly Trends
+              </h3>
+            </div>
+            <ResponsiveContainer width="100%" height={200}>
+              <LineChart data={weeklyData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                <XAxis dataKey="day" stroke="#6B7280" fontSize={12} />
+                <YAxis stroke="#6B7280" fontSize={12} />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#fff', 
+                    border: '1px solid #E5E7EB', 
+                    borderRadius: '8px',
+                    fontSize: '12px'
+                  }} 
+                />
+                <Legend />
+                <Line 
+                  type="monotone" 
+                  dataKey="slots" 
+                  stroke="#3B82F6" 
+                  strokeWidth={2}
+                  name="Appointment Slots"
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="bookings" 
+                  stroke="#10B981" 
+                  strokeWidth={2}
+                  name="Patient Bookings"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </motion.div>
+
+          {/* Status Distribution Chart */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="bg-white rounded-lg shadow-sm p-3 border border-gray-100"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
+                <ChartBarIcon className="h-4 w-4 text-primary-600" />
+                {viewMode === 'slots' ? 'Slot Status' : 'Booking Status'}
+              </h3>
+            </div>
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart>
+                <Pie
+                  data={viewMode === 'slots' ? slotStatusData : bookingStatusData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={true}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {(viewMode === 'slots' ? slotStatusData : bookingStatusData).map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </motion.div>
+        </div>
+
         {/* Enhanced Filters */}
-        <div className="bg-white rounded-xl shadow-md p-4 border border-gray-200">
-          <div className="flex items-center gap-2 mb-3">
-            <FunnelIcon className="h-4 w-4 text-primary-600" />
-            <h3 className="text-lg font-bold text-gray-900">Filters & Search</h3>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-white rounded-lg shadow-sm p-3 border border-gray-200"
+        >
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-1.5">
+              <FunnelIcon className="h-4 w-4 text-primary-600" />
+              <h3 className="text-sm font-bold text-gray-900">Filters & Search</h3>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <TrendingUpIcon className="h-3 w-3 text-gray-400" />
+              <span className="text-xs text-gray-500">
+                {viewMode === 'slots' ? `${filteredAppointments.length} slots` : `${filteredTokenAppointments.length} bookings`} found
+              </span>
+            </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-3">
+          <div className="flex flex-wrap items-center gap-2 mb-2">
             {/* Search */}
-            <div className="relative">
-              <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <div className="relative flex-1 min-w-[150px]">
+              <MagnifyingGlassIcon className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search by name, email, phone..."
+                placeholder="Search..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 input-field"
+                className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
 
@@ -323,7 +493,7 @@ const AppointmentsPage: React.FC = () => {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="input-field"
+              className="px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 min-w-[120px]"
             >
               <option value="all">All Status</option>
               <option value="available">Available</option>
@@ -343,7 +513,7 @@ const AppointmentsPage: React.FC = () => {
             <select
               value={doctorFilter}
               onChange={(e) => setDoctorFilter(e.target.value)}
-              className="input-field"
+              className="px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 min-w-[140px]"
             >
               <option value="all">All Doctors</option>
               {doctors.map(doctor => (
@@ -354,12 +524,12 @@ const AppointmentsPage: React.FC = () => {
             </select>
 
             {/* Location Filter */}
-            <div className="relative">
-              <MapPinIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none z-10" />
+            <div className="relative min-w-[160px]">
+              <MapPinIcon className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-gray-400 pointer-events-none z-10" />
               <select
                 value={locationFilter}
                 onChange={(e) => setLocationFilter(e.target.value ? Number(e.target.value) : '')}
-                className="pl-9 input-field appearance-none bg-white pr-8"
+                className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 appearance-none bg-white"
               >
                 <option value="">All Locations</option>
                 {clinics.map(clinic => (
@@ -371,13 +541,13 @@ const AppointmentsPage: React.FC = () => {
             </div>
 
             {/* Date Filter */}
-            <div className="relative">
-              <CalendarIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+            <div className="relative min-w-[140px]">
+              <CalendarIcon className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-gray-400 pointer-events-none" />
               <input
                 type="date"
                 value={dateFilter}
                 onChange={(e) => setDateFilter(e.target.value)}
-                className="pl-9 input-field"
+                className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
 
@@ -391,52 +561,52 @@ const AppointmentsPage: React.FC = () => {
                   setDateFilter('');
                   setSearchTerm('');
                 }}
-                className="flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700"
+                className="flex items-center justify-center gap-1 px-2 py-1.5 text-xs border border-gray-300 rounded-md hover:bg-gray-50 transition-colors text-gray-700 whitespace-nowrap"
               >
-                <XCircleIcon className="h-4 w-4" />
+                <XCircleIcon className="h-3.5 w-3.5" />
                 Clear All
               </button>
             )}
           </div>
 
           {/* View Mode Toggle */}
-          <div className="flex items-center justify-between pt-3 border-t border-gray-200">
-            <div className="flex gap-2">
+          <div className="flex items-center justify-between pt-2 border-t border-gray-200">
+            <div className="flex gap-1.5">
               <button
                 onClick={() => setViewMode('slots')}
-                className={`px-3 py-1.5 text-sm rounded-lg font-medium transition-all ${
+                className={`px-2 py-1 text-xs rounded-md font-medium transition-all ${
                   viewMode === 'slots'
-                    ? 'bg-primary-600 text-white shadow-md'
+                    ? 'bg-primary-600 text-white shadow-sm'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                <CalendarIcon className="h-4 w-4 inline mr-1.5" />
-                Appointment Slots
+                <CalendarIcon className="h-3.5 w-3.5 inline mr-1" />
+                Slots
               </button>
               <button
                 onClick={() => setViewMode('bookings')}
-                className={`px-3 py-1.5 text-sm rounded-lg font-medium transition-all ${
+                className={`px-2 py-1 text-xs rounded-md font-medium transition-all ${
                   viewMode === 'bookings'
-                    ? 'bg-primary-600 text-white shadow-md'
+                    ? 'bg-primary-600 text-white shadow-sm'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                <UserGroupIcon className="h-4 w-4 inline mr-1.5" />
-                Patient Bookings
+                <UserGroupIcon className="h-3.5 w-3.5 inline mr-1" />
+                Bookings
               </button>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-1.5">
               <button
                 onClick={handleExport}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700"
+                className="flex items-center gap-1 px-2 py-1 text-xs border border-gray-300 rounded-md hover:bg-gray-50 transition-colors text-gray-700"
                 title="Export to CSV"
               >
-                <ArrowDownTrayIcon className="h-4 w-4" />
+                <ArrowDownTrayIcon className="h-3.5 w-3.5" />
                 Export
               </button>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Enhanced Calendar View */}
         {showCalendarView && (
@@ -509,21 +679,21 @@ const AppointmentsPage: React.FC = () => {
 
         {/* Appointment Slots */}
         {!showCalendarView && viewMode === 'slots' && (
-          <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
-            <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-secondary-50">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div className="p-3 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-secondary-50">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <CalendarIcon className="h-5 w-5 text-primary-600" />
-                  <h2 className="text-lg font-bold text-gray-900">
+                <div className="flex items-center gap-1.5">
+                  <CalendarIcon className="h-4 w-4 text-primary-600" />
+                  <h2 className="text-sm font-bold text-gray-900">
                     Appointment Slots
-                    <span className="ml-2 text-base font-semibold text-primary-600">
+                    <span className="ml-1.5 text-xs font-semibold text-primary-600">
                       ({filteredAppointments.length})
                     </span>
                   </h2>
                 </div>
               </div>
             </div>
-            <div className="p-4">
+            <div className="p-3">
               {isLoading ? (
                 <div className="text-center py-8">
                   <LoadingSpinner size="md" />
@@ -541,7 +711,7 @@ const AppointmentsPage: React.FC = () => {
                   </p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {filteredAppointments.map((appointment, index) => (
                     <motion.div
                       key={appointment.id}
@@ -564,21 +734,21 @@ const AppointmentsPage: React.FC = () => {
 
         {/* Enhanced Patient Bookings */}
         {!showCalendarView && viewMode === 'bookings' && (
-          <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
-            <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-secondary-50 to-primary-50">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div className="p-3 border-b border-gray-200 bg-gradient-to-r from-secondary-50 to-primary-50">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <UserGroupIcon className="h-5 w-5 text-secondary-600" />
-                  <h2 className="text-lg font-bold text-gray-900">
+                <div className="flex items-center gap-1.5">
+                  <UserGroupIcon className="h-4 w-4 text-secondary-600" />
+                  <h2 className="text-sm font-bold text-gray-900">
                     Patient Bookings
-                    <span className="ml-2 text-base font-semibold text-secondary-600">
+                    <span className="ml-1.5 text-xs font-semibold text-secondary-600">
                       ({filteredTokenAppointments.length})
                     </span>
                   </h2>
                 </div>
               </div>
             </div>
-            <div className="p-4">
+            <div className="p-3">
               {isLoading ? (
                 <div className="text-center py-8">
                   <LoadingSpinner size="md" />
@@ -596,22 +766,22 @@ const AppointmentsPage: React.FC = () => {
                   </p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                   {filteredTokenAppointments.map((booking, index) => (
                     <motion.div
                       key={booking.id}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.05 }}
-                      className="group bg-white border-2 border-gray-200 rounded-xl p-4 hover:border-primary-300 hover:shadow-lg transition-all duration-300"
+                      className="group bg-white border-2 border-gray-200 rounded-lg p-3 hover:border-primary-300 hover:shadow-md transition-all duration-300"
                     >
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 bg-gradient-to-br from-primary-400 to-secondary-400 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-10 h-10 bg-gradient-to-br from-primary-400 to-secondary-400 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-sm">
                             {booking.patientName?.charAt(0).toUpperCase() || '?'}
                           </div>
                           <div>
-                            <h3 className="text-base font-bold text-gray-900">{booking.patientName || 'Unknown'}</h3>
+                            <h3 className="text-sm font-bold text-gray-900">{booking.patientName || 'Unknown'}</h3>
                             <p className="text-xs text-gray-600">{booking.patientEmail || ''}</p>
                           </div>
                         </div>

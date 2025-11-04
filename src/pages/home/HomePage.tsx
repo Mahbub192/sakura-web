@@ -30,7 +30,8 @@ import { useAuth } from '../../hooks/useAuth';
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const canAccessLivePatient = isAuthenticated && user && ['Admin', 'Doctor', 'Assistant'].includes(user.role);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [availableAppointments, setAvailableAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -199,6 +200,14 @@ const HomePage: React.FC = () => {
               >
                 Patients
               </Link>
+              {canAccessLivePatient && (
+                <Link
+                  to="/patients/live"
+                  className="text-gray-700 hover:text-primary-600 font-medium transition-colors"
+                >
+                  Live Patient
+                </Link>
+              )}
               <a
                 href="#services"
                 onClick={(e) => {
@@ -310,6 +319,15 @@ const HomePage: React.FC = () => {
               >
                 Patients
               </Link>
+              {canAccessLivePatient && (
+                <Link
+                  to="/patients/live"
+                  className="block px-4 py-2 text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Live Patient
+                </Link>
+              )}
               <a
                 href="#services"
                 onClick={(e) => {

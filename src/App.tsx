@@ -20,6 +20,7 @@ import PatientBookingPage from './pages/patients/PatientBookingPage';
 import DoctorsPage from './pages/doctors/DoctorsPage';
 import PatientsPage from './pages/patients/PatientsPage';
 import PatientsViewPage from './pages/patients/PatientsViewPage';
+import LivePatientPage from './pages/patients/LivePatientPage';
 import AdminPage from './pages/admin/AdminPage';
 import CreateDoctorProfilePage from './pages/profile/CreateDoctorProfilePage';
 import CreateAssistantProfilePage from './pages/profile/CreateAssistantProfilePage';
@@ -73,6 +74,11 @@ const AppContent: React.FC = () => {
         <Route path="/patients/view" element={
           <ProtectedRoute allowedRoles={['Admin', 'Doctor', 'Assistant']}>
             <DashboardLayout><PatientsViewPage /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/patients/live" element={
+          <ProtectedRoute allowedRoles={['Admin', 'Doctor', 'Assistant']}>
+            <LivePatientPage />
           </ProtectedRoute>
         } />
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { 
@@ -44,6 +45,7 @@ const formatTimeTo12Hour = (time24: string): string => {
 };
 
 const PatientsViewPage: React.FC = () => {
+  const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { isAssistant } = useAuth();
   const { isLoading } = useAppSelector(state => state.appointments);
@@ -480,7 +482,14 @@ const PatientsViewPage: React.FC = () => {
                           </div>
                         </div>
 
-                        <ArrowRightIcon className="h-4 w-4 text-gray-400 flex-shrink-0 mt-1" />
+                        <button
+                          onClick={() => {
+                            navigate(`/patients/live?location=${selectedLocation}&date=${selectedDate}&doctor=${selectedDoctorFilter}&patientId=${patient.id}`);
+                          }}
+                          className="p-1 hover:bg-primary-50 rounded transition-colors"
+                        >
+                          <ArrowRightIcon className="h-4 w-4 text-gray-400 hover:text-primary-600 flex-shrink-0 mt-1" />
+                        </button>
                       </div>
                     </motion.div>
                   ))}

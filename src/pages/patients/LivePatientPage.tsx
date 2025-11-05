@@ -173,6 +173,31 @@ const LivePatientPage: React.FC = () => {
     }
   };
 
+  // Auto-scroll to keep active row in top 3 position
+  useEffect(() => {
+    if (filteredPatients.length > 0 && currentPatientIndex >= 0) {
+      const tableContainer = document.querySelector('.patient-table-container');
+      if (tableContainer) {
+        const activeRow = tableContainer.querySelector(`tr[data-patient-index="${currentPatientIndex}"]`) as HTMLElement;
+        if (activeRow) {
+          // Calculate scroll position to put active row in 3rd position (top 3 rows)
+          const rowHeight = activeRow.offsetHeight;
+          const containerTop = tableContainer.getBoundingClientRect().top;
+          const rowTop = activeRow.getBoundingClientRect().top;
+          const currentScrollTop = tableContainer.scrollTop;
+          
+          // Target: position active row at 3rd row from top (2 rows above it)
+          const targetPosition = currentScrollTop + (rowTop - containerTop) - (rowHeight * 2);
+          
+          tableContainer.scrollTo({
+            top: Math.max(0, targetPosition),
+            behavior: 'smooth'
+          });
+        }
+      }
+    }
+  }, [currentPatientIndex, filteredPatients.length]);
+
   const handlePreviousPatient = () => {
     if (currentPatientIndex > 0) {
       setCurrentPatientIndex(currentPatientIndex - 1);
@@ -715,7 +740,7 @@ const LivePatientPage: React.FC = () => {
                   <p className="text-xs text-gray-500">Please select filters to view patients</p>
                 </div>
               ) : (
-                <div className={`overflow-x-auto overflow-y-auto flex-1 ${isFullScreen ? 'max-h-[calc(100vh-200px)]' : 'max-h-[calc(100vh-350px)]'}`}>
+                <div className={`patient-table-container overflow-x-auto overflow-y-auto flex-1 ${isFullScreen ? 'max-h-[calc(100vh-200px)]' : 'max-h-[calc(100vh-350px)]'}`}>
                   <table className="w-full text-sm">
                     <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-200 sticky top-0 z-10">
                       <tr>
@@ -739,6 +764,7 @@ const LivePatientPage: React.FC = () => {
                         return (
                           <tr
                             key={patient.id}
+                            data-patient-index={index}
                             className={`
                               ${isActive ? 'bg-gradient-to-r from-blue-100 to-blue-50 border-l-4 border-blue-600 shadow-sm' : ''}
                               ${isNext && !isActive ? 'bg-gradient-to-r from-green-50 to-green-100/50 border-l-4 border-green-600 shadow-sm' : ''}

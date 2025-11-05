@@ -7,6 +7,8 @@ import {
   PieChart, 
   Pie, 
   Cell, 
+  AreaChart,
+  Area,
   XAxis, 
   YAxis, 
   CartesianGrid, 
@@ -152,6 +154,56 @@ const GlobalDashboardPage: React.FC = () => {
       revenue: doctor.totalRevenue,
     }));
   }, [doctorStats]);
+
+  // Calculate revenue distribution by doctors
+  const doctorRevenueData = useMemo(() => {
+    return doctorStats
+      .sort((a, b) => b.totalRevenue - a.totalRevenue)
+      .slice(0, 5)
+      .map(doctor => ({
+        name: doctor.doctorName.length > 8 ? doctor.doctorName.substring(0, 8) + '...' : doctor.doctorName,
+        revenue: parseFloat(doctor.totalRevenue.toFixed(2)),
+      }));
+  }, [doctorStats]);
+
+  // Calculate appointments by status for bar chart
+  const statusBarData = useMemo(() => {
+    if (!stats) return [];
+    
+    return [
+      { name: 'Confirmed', value: stats.confirmedAppointments, color: '#10B981' },
+      { name: 'Pending', value: stats.pendingAppointments, color: '#F59E0B' },
+      { name: 'Completed', value: stats.completedAppointments, color: '#3B82F6' },
+      { name: 'Cancelled', value: stats.cancelledAppointments, color: '#EF4444' },
+    ];
+  }, [stats]);
+
+  // Calculate appointment trends from todayAppointments
+  const appointmentTrendsData = useMemo(() => {
+    if (todayAppointments.length === 0) return [];
+    
+    const today = new Date();
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+      const date = new Date(today);
+      date.setDate(date.getDate() - (6 - i));
+      return format(date, 'MMM dd');
+    });
+
+    return last7Days.map(day => {
+      const dayDate = new Date(day);
+      const appointments = todayAppointments.filter(apt => {
+        const aptDate = new Date(apt.date);
+        return aptDate.toDateString() === dayDate.toDateString();
+      });
+
+      return {
+        day,
+        total: appointments.length,
+        confirmed: appointments.filter(a => a.status === 'Confirmed').length,
+        completed: appointments.filter(a => a.status === 'Completed').length,
+      };
+    });
+  }, [todayAppointments]);
 
   const statsCards = stats ? [
     {
@@ -309,10 +361,10 @@ const GlobalDashboardPage: React.FC = () => {
         </div>
       )}
 
-      {/* Charts Section */}
+      {/* Charts Section - All in one row */}
       {stats && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-          {/* Status Distribution */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {/* Status Distribution Pie Chart */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -346,24 +398,59 @@ const GlobalDashboardPage: React.FC = () => {
             </ResponsiveContainer>
           </motion.div>
 
+          {/* Status Bar Chart */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="bg-white rounded-lg shadow-sm p-3 border border-gray-100"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
+                <ChartBarIcon className="h-4 w-4 text-primary-600" />
+                Status Comparison
+              </h3>
+            </div>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={statusBarData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                <XAxis dataKey="name" stroke="#6B7280" fontSize={10} />
+                <YAxis stroke="#6B7280" fontSize={10} />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#fff', 
+                    border: '1px solid #E5E7EB', 
+                    borderRadius: '8px',
+                    fontSize: '12px'
+                  }} 
+                />
+                <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                  {statusBarData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </motion.div>
+
           {/* Doctor Performance */}
           {doctorPerformanceData.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
+              transition={{ delay: 0.5 }}
               className="bg-white rounded-lg shadow-sm p-3 border border-gray-100"
             >
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
                   <ChartBarIcon className="h-4 w-4 text-primary-600" />
-                  Top Doctors Performance
+                  Top Doctors
                 </h3>
               </div>
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={doctorPerformanceData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                  <XAxis dataKey="name" stroke="#6B7280" fontSize={10} angle={-15} textAnchor="end" height={60} />
+                  <XAxis dataKey="name" stroke="#6B7280" fontSize={9} angle={-15} textAnchor="end" height={60} />
                   <YAxis stroke="#6B7280" fontSize={10} />
                   <Tooltip 
                     contentStyle={{ 
@@ -375,6 +462,80 @@ const GlobalDashboardPage: React.FC = () => {
                   />
                   <Bar dataKey="appointments" fill="#3B82F6" radius={[4, 4, 0, 0]} />
                 </BarChart>
+              </ResponsiveContainer>
+            </motion.div>
+          )}
+        </div>
+      )}
+
+      {/* Additional Charts Row */}
+      {stats && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          {/* Doctor Revenue Chart */}
+          {doctorRevenueData.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+              className="bg-white rounded-lg shadow-sm p-3 border border-gray-100"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
+                  <ChartBarIcon className="h-4 w-4 text-primary-600" />
+                  Top Doctors Revenue
+                </h3>
+              </div>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={doctorRevenueData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                  <XAxis dataKey="name" stroke="#6B7280" fontSize={9} angle={-15} textAnchor="end" height={60} />
+                  <YAxis stroke="#6B7280" fontSize={10} />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#fff', 
+                      border: '1px solid #E5E7EB', 
+                      borderRadius: '8px',
+                      fontSize: '12px'
+                    }}
+                    formatter={(value: number) => `$${value.toFixed(2)}`}
+                  />
+                  <Bar dataKey="revenue" fill="#10B981" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </motion.div>
+          )}
+
+          {/* Appointment Trends */}
+          {appointmentTrendsData.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.7 }}
+              className="bg-white rounded-lg shadow-sm p-3 border border-gray-100"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
+                  <ChartBarIcon className="h-4 w-4 text-primary-600" />
+                  Appointment Trends (Last 7 Days)
+                </h3>
+              </div>
+              <ResponsiveContainer width="100%" height={200}>
+                <AreaChart data={appointmentTrendsData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                  <XAxis dataKey="day" stroke="#6B7280" fontSize={10} />
+                  <YAxis stroke="#6B7280" fontSize={10} />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#fff', 
+                      border: '1px solid #E5E7EB', 
+                      borderRadius: '8px',
+                      fontSize: '12px'
+                    }} 
+                  />
+                  <Area type="monotone" dataKey="total" stackId="1" stroke="#3B82F6" fill="#3B82F6" fillOpacity={0.6} />
+                  <Area type="monotone" dataKey="confirmed" stackId="2" stroke="#10B981" fill="#10B981" fillOpacity={0.6} />
+                  <Area type="monotone" dataKey="completed" stackId="3" stroke="#8B5CF6" fill="#8B5CF6" fillOpacity={0.6} />
+                </AreaChart>
               </ResponsiveContainer>
             </motion.div>
           )}

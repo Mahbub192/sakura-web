@@ -1,21 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { format } from 'date-fns';
 import { 
   UsersIcon,
   CalendarIcon,
   MapPinIcon,
-  PhoneIcon,
   HeartIcon,
   AcademicCapIcon,
   BuildingOfficeIcon,
-  ClockIcon,
   CheckCircleIcon,
   UserCircleIcon,
-  ArrowRightIcon,
   Bars3Icon,
   XMarkIcon,
+  ArrowsPointingOutIcon,
+  ArrowsPointingInIcon,
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
@@ -64,6 +62,7 @@ const LivePatientPage: React.FC = () => {
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const [currentPatientIndex, setCurrentPatientIndex] = useState<number>(0); // Current active patient
   const [readyPatients, setReadyPatients] = useState<Set<number>>(new Set()); // Patients marked as ready
+  const [isFullScreen, setIsFullScreen] = useState<boolean>(false); // Full screen mode
 
   // Get initial filters from URL params
   useEffect(() => {
@@ -461,31 +460,60 @@ const LivePatientPage: React.FC = () => {
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-4"
+            className={isFullScreen ? "mb-0" : "mb-3"}
           >
-            <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
-              <h1 className="text-xl font-bold text-gray-900 mb-2 flex items-center gap-2">
-                <UsersIcon className="h-6 w-6 text-primary-600" />
-                Live Patient Management
-              </h1>
-              <p className="text-sm text-gray-600">View and manage live patient appointments</p>
+            <div className="bg-gradient-to-r from-primary-600 to-secondary-600 rounded-lg shadow-md p-3 border border-gray-200 relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent"></div>
+              <div className="relative flex items-center justify-between">
+                <div>
+                  <h1 className="text-lg font-bold text-white mb-0.5 flex items-center gap-2">
+                    <div className="bg-white/20 backdrop-blur-sm p-1.5 rounded-lg">
+                      <UsersIcon className="h-4 w-4 text-white" />
+                    </div>
+                    Live Patient Management
+                  </h1>
+                  <p className="text-xs text-white/90">View and manage live patient appointments</p>
+                </div>
+                {selectedLocation && selectedDate && filteredPatients.length > 0 && (
+                  <button
+                    onClick={() => setIsFullScreen(!isFullScreen)}
+                    className="bg-white/20 hover:bg-white/30 backdrop-blur-sm px-4 py-2 rounded-lg transition-all flex items-center gap-2 text-white font-semibold text-xs shadow-sm hover:shadow-md"
+                  >
+                    {isFullScreen ? (
+                      <>
+                        <ArrowsPointingInIcon className="h-4 w-4" />
+                        Exit Full Screen
+                      </>
+                    ) : (
+                      <>
+                        <ArrowsPointingOutIcon className="h-4 w-4" />
+                        Full Screen
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
             </div>
           </motion.div>
 
         {/* Filters */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-white rounded-lg shadow-md p-4 mb-4 border border-gray-200"
-        >
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Location *</label>
+        {!isFullScreen && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="bg-white rounded-lg shadow-sm p-3 mb-3 border border-gray-100"
+          >
+          <div className="flex flex-wrap items-end gap-2">
+            <div className="relative flex-1 min-w-[200px]">
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                <MapPinIcon className="h-3.5 w-3.5 inline mr-1 text-primary-600" />
+                Location *
+              </label>
               <select
                 value={selectedLocation || ''}
                 onChange={(e) => setSelectedLocation(e.target.value ? Number(e.target.value) : '')}
-                className="w-full text-xs px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full text-xs px-2.5 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
               >
                 <option value="">Select Location</option>
                 {clinics.map((clinic) => (
@@ -496,23 +524,29 @@ const LivePatientPage: React.FC = () => {
               </select>
             </div>
 
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Date *</label>
+            <div className="relative flex-1 min-w-[150px]">
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                <CalendarIcon className="h-3.5 w-3.5 inline mr-1 text-primary-600" />
+                Date *
+              </label>
               <input
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-full text-xs px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full text-xs px-2.5 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Doctor *</label>
+            <div className="relative flex-1 min-w-[180px]">
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                <HeartIcon className="h-3.5 w-3.5 inline mr-1 text-primary-600" />
+                Doctor *
+              </label>
               <select
                 value={selectedDoctorFilter || ''}
                 onChange={(e) => setSelectedDoctorFilter(e.target.value ? Number(e.target.value) : '')}
                 disabled={isAssistant}
-                className={`w-full text-xs px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+                className={`w-full text-xs px-2.5 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white ${
                   isAssistant ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''
                 }`}
               >
@@ -524,22 +558,32 @@ const LivePatientPage: React.FC = () => {
                 ))}
               </select>
               {isAssistant && (
-                <p className="text-xs text-gray-500 mt-1">Showing patients for your assigned doctor</p>
+                <p className="text-xs text-gray-500 mt-0.5">Showing patients for your assigned doctor</p>
               )}
             </div>
 
-            <div className="flex items-end">
+            <div className="flex-shrink-0">
               <button
                 onClick={handleFilter}
-                disabled={!selectedLocation || !selectedDate}
-                className="w-full bg-primary-600 text-white px-4 py-1.5 rounded-md hover:bg-primary-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-xs font-medium transition-colors flex items-center justify-center gap-1.5"
+                disabled={!selectedLocation || !selectedDate || isLoading}
+                className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white font-semibold text-xs py-1.5 px-4 rounded-md transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
               >
-                <UsersIcon className="h-4 w-4" />
-                View Patients
+                {isLoading ? (
+                  <>
+                    <LoadingSpinner size="sm" />
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    <UsersIcon className="h-3.5 w-3.5" />
+                    View Patients
+                  </>
+                )}
               </button>
             </div>
           </div>
-        </motion.div>
+          </motion.div>
+        )}
 
         {/* Main Content - 25% Doctor Info, 70% Patient List */}
         {selectedLocation && selectedDate && filteredPatients.length > 0 ? (
@@ -547,62 +591,85 @@ const LivePatientPage: React.FC = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
-            className="grid grid-cols-1 lg:grid-cols-10 gap-4"
+            className={`grid grid-cols-1 lg:grid-cols-10 gap-4 ${isFullScreen ? 'fixed inset-0 z-40 bg-gradient-to-br from-gray-50 to-gray-100 p-4' : ''}`}
           >
             {/* Left Column - Doctor Information (25%) */}
-            <div className="lg:col-span-2 bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
-              <div className="bg-gradient-to-br from-primary-600 to-secondary-600 p-3 text-white">
-                <h2 className="text-sm font-bold mb-1 flex items-center gap-1.5">
-                  <HeartIcon className="h-4 w-4" />
-                  Doctor Information
-                </h2>
-                <p className="text-xs text-primary-100">Appointment details</p>
+            <div className={`lg:col-span-2 bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden ${isFullScreen ? 'lg:h-[calc(100vh-2rem)]' : ''}`}>
+              <div className="bg-gradient-to-br from-primary-600 via-primary-700 to-secondary-600 p-3 text-white relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent"></div>
+                <div className="relative">
+                  <h2 className="text-base font-bold mb-0.5 flex items-center gap-2">
+                    <div className="bg-white/20 backdrop-blur-sm p-1 rounded-lg">
+                      <HeartIcon className="h-4 w-4" />
+                    </div>
+                    Doctor Information
+                  </h2>
+                  <p className="text-xs text-white/90">Appointment details</p>
+                </div>
               </div>
 
               {selectedDoctor ? (
                 <div className="p-3 space-y-2">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-12 h-12 bg-gradient-to-br from-primary-400 to-secondary-400 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md">
-                      <HeartIcon className="h-6 w-6" />
+                  <div className="flex items-center space-x-3 pb-3 border-b border-gray-200">
+                    <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-full flex items-center justify-center shadow-md flex-shrink-0">
+                      <HeartIcon className="h-8 w-8 text-white" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-sm font-bold text-gray-900 truncate">Dr. {selectedDoctor.name}</h3>
-                      <p className="text-xs text-gray-600 truncate">{selectedDoctor.specialization}</p>
+                      <h3 className="text-xl font-bold text-gray-900 truncate">Dr. {selectedDoctor.name}</h3>
+                      <p className="text-primary-600 font-semibold text-sm truncate">{selectedDoctor.specialization}</p>
+                      <div className="flex items-center gap-1 mt-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <StarIconSolid key={star} className="h-4 w-4 text-yellow-400" />
+                        ))}
+                        <span className="ml-1 text-sm text-gray-600">(4.9)</span>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1 mb-1">
-                    {[...Array(5)].map((_, i) => (
-                      <StarIconSolid key={i} className="h-3 w-3 text-yellow-400" />
-                    ))}
-                    <span className="text-xs text-gray-600 ml-1">(4.9)</span>
-                  </div>
-
-                  <div className="space-y-1.5 text-xs">
-                    <div className="flex items-center gap-1.5 text-gray-700">
-                      <AcademicCapIcon className="h-3.5 w-3.5 text-primary-600 flex-shrink-0" />
-                      <span className="font-medium">Experience:</span>
-                      <span>{selectedDoctor.experience || 0} years</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-gray-700">
-                      <BuildingOfficeIcon className="h-3.5 w-3.5 text-primary-600 flex-shrink-0" />
-                      <span className="font-medium">Qualification:</span>
-                      <span className="truncate">{selectedDoctor.qualification}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-gray-700">
-                      <HeartIcon className="h-3.5 w-3.5 text-primary-600 flex-shrink-0" />
-                      <span className="font-medium">Consultation Fee:</span>
-                      <span className="font-bold text-primary-600">${selectedDoctor.consultationFee}</span>
-                    </div>
-                    {selectedLocation && (
-                      <div className="flex items-start gap-1.5 text-gray-700 pt-1 border-t border-gray-200">
-                        <MapPinIcon className="h-3.5 w-3.5 text-primary-600 flex-shrink-0 mt-0.5" />
+                  <div className="space-y-2">
+                    {selectedDoctor.experience && (
+                      <div className="flex items-center gap-2 p-2 bg-gradient-to-r from-gray-50 to-gray-100/50 rounded-md hover:shadow-sm transition-shadow">
+                        <div className="bg-primary-100 p-1.5 rounded-md">
+                          <AcademicCapIcon className="h-5 w-5 text-primary-600 flex-shrink-0" />
+                        </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-xs font-medium">Clinic Location</p>
-                          <p className="text-xs text-gray-600 truncate">
+                          <p className="text-sm text-gray-600">Experience</p>
+                          <p className="font-bold text-base text-gray-900">{selectedDoctor.experience} years</p>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-2 p-2 bg-gradient-to-r from-gray-50 to-gray-100/50 rounded-md hover:shadow-sm transition-shadow">
+                      <div className="bg-primary-100 p-1.5 rounded-md">
+                        <BuildingOfficeIcon className="h-5 w-5 text-primary-600 flex-shrink-0" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm text-gray-600">Qualification</p>
+                        <p className="font-bold text-base text-gray-900 truncate">{selectedDoctor.qualification}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 p-2 bg-gradient-to-r from-gray-50 to-gray-100/50 rounded-md hover:shadow-sm transition-shadow">
+                      <div className="bg-primary-100 p-1.5 rounded-md">
+                        <HeartIcon className="h-5 w-5 text-primary-600 flex-shrink-0" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm text-gray-600">Consultation Fee</p>
+                        <p className="font-bold text-base text-gray-900">${selectedDoctor.consultationFee}</p>
+                      </div>
+                    </div>
+
+                    {selectedLocation && (
+                      <div className="flex items-center gap-2 p-2 bg-gradient-to-r from-gray-50 to-gray-100/50 rounded-md hover:shadow-sm transition-shadow">
+                        <div className="bg-primary-100 p-1.5 rounded-md">
+                          <MapPinIcon className="h-5 w-5 text-primary-600 flex-shrink-0" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm text-gray-600">Clinic Location</p>
+                          <p className="font-bold text-base text-gray-900 truncate">
                             {clinics.find(c => c.id === selectedLocation)?.locationName || 'N/A'}
                           </p>
-                          <p className="text-xs text-gray-600 truncate">
+                          <p className="text-sm text-gray-600 truncate">
                             {clinics.find(c => c.id === selectedLocation)?.address || ''}
                           </p>
                         </div>
@@ -611,50 +678,58 @@ const LivePatientPage: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <div className="p-4 text-center">
-                  <p className="text-xs text-gray-500">No doctor information available</p>
+                <div className="p-6 text-center">
+                  <UserCircleIcon className="h-10 w-10 text-gray-400 mx-auto mb-2" />
+                  <p className="text-xs text-gray-600 font-semibold">No doctor information available</p>
+                  <p className="text-xs text-gray-500 mt-1">Please select filters to view doctor details</p>
                 </div>
               )}
             </div>
 
             {/* Right Column - Patient List (70%) */}
-            <div className="lg:col-span-8 bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
-              <div className="bg-gradient-to-br from-secondary-600 to-primary-600 p-3 text-white">
-                <h2 className="text-sm font-bold mb-1 flex items-center gap-1.5">
-                  <UsersIcon className="h-4 w-4" />
-                  Patient List
-                </h2>
-                <p className="text-xs text-secondary-100">
-                  {filteredPatients.length} Patient{filteredPatients.length !== 1 ? 's' : ''} Found
-                </p>
+            <div className={`lg:col-span-8 bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden flex flex-col ${isFullScreen ? 'lg:h-[calc(100vh-2rem)]' : ''}`}>
+              <div className="bg-gradient-to-br from-secondary-600 via-secondary-700 to-primary-600 p-3 text-white relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent"></div>
+                <div className="relative">
+                  <h2 className="text-base font-bold mb-0.5 flex items-center gap-2">
+                    <div className="bg-white/20 backdrop-blur-sm p-1 rounded-lg">
+                      <UsersIcon className="h-4 w-4" />
+                    </div>
+                    Patient List
+                  </h2>
+                  <p className="text-xs text-white/90">
+                    {filteredPatients.length} Patient{filteredPatients.length !== 1 ? 's' : ''} Found
+                  </p>
+                </div>
               </div>
 
               {isLoading ? (
-                <div className="p-8 text-center">
+                <div className="p-6 text-center">
                   <LoadingSpinner size="md" />
-                  <p className="text-xs text-gray-600 mt-3">Loading patients...</p>
+                  <p className="text-xs text-gray-600 mt-2">Loading patients...</p>
                 </div>
               ) : filteredPatients.length === 0 ? (
-                <div className="p-8 text-center">
-                  <UsersIcon className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                  <p className="text-xs text-gray-600 font-medium">No patients found</p>
+                <div className="p-6 text-center">
+                  <UsersIcon className="h-10 w-10 text-gray-400 mx-auto mb-2" />
+                  <p className="text-xs text-gray-600 font-semibold mb-1">No patients found</p>
+                  <p className="text-xs text-gray-500">Please select filters to view patients</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto max-h-[calc(100vh-350px)] overflow-y-auto">
-                  <table className="w-full text-xs">
-                    <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
+                <div className={`overflow-x-auto overflow-y-auto flex-1 ${isFullScreen ? 'max-h-[calc(100vh-200px)]' : 'max-h-[calc(100vh-350px)]'}`}>
+                  <table className="w-full text-sm">
+                    <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-200 sticky top-0 z-10">
                       <tr>
-                        <th className="px-2 py-2 text-left font-semibold text-gray-700 w-12">#</th>
-                        <th className="px-2 py-2 text-left font-semibold text-gray-700">Name</th>
-                        <th className="px-2 py-2 text-left font-semibold text-gray-700 w-16">Age</th>
-                        <th className="px-2 py-2 text-left font-semibold text-gray-700 w-20">Gender</th>
-                        <th className="px-2 py-2 text-left font-semibold text-gray-700 w-24">Phone</th>
-                        <th className="px-2 py-2 text-left font-semibold text-gray-700 w-20">Time</th>
-                        <th className="px-2 py-2 text-center font-semibold text-gray-700 w-24">Status</th>
-                        <th className="px-2 py-2 text-center font-semibold text-gray-700 w-20">Action</th>
+                        <th className="px-3 py-3 text-left font-bold text-gray-700 w-12">#</th>
+                        <th className="px-3 py-3 text-left font-bold text-gray-700">Name</th>
+                        <th className="px-3 py-3 text-left font-bold text-gray-700 w-20">Age</th>
+                        <th className="px-3 py-3 text-left font-bold text-gray-700 w-24">Gender</th>
+                        <th className="px-3 py-3 text-left font-bold text-gray-700 w-32">Phone</th>
+                        <th className="px-3 py-3 text-left font-bold text-gray-700 w-24">Time</th>
+                        <th className="px-3 py-3 text-center font-bold text-gray-700 w-28">Status</th>
+                        <th className="px-3 py-3 text-center font-bold text-gray-700 w-24">Action</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-200 bg-white">
+                    <tbody className="divide-y divide-gray-100 bg-white">
                       {filteredPatients.map((patient, index) => {
                         const isActive = index === currentPatientIndex;
                         const isNext = index === getNextPatientIndex();
@@ -665,48 +740,48 @@ const LivePatientPage: React.FC = () => {
                           <tr
                             key={patient.id}
                             className={`
-                              ${isActive ? 'bg-blue-100 border-l-4 border-blue-500' : ''}
-                              ${isNext ? 'bg-green-50 border-l-4 border-green-500' : ''}
-                              ${!isActive && !isNext ? 'hover:bg-gray-50' : ''}
-                              transition-colors
+                              ${isActive ? 'bg-gradient-to-r from-blue-100 to-blue-50 border-l-4 border-blue-600 shadow-sm' : ''}
+                              ${isNext && !isActive ? 'bg-gradient-to-r from-green-50 to-green-100/50 border-l-4 border-green-600 shadow-sm' : ''}
+                              ${!isActive && !isNext ? 'hover:bg-gradient-to-r hover:from-gray-50 hover:to-primary-50/30' : ''}
+                              transition-all
                             `}
                           >
-                            <td className="px-2 py-2 font-semibold text-gray-900">{index + 1}</td>
-                            <td className="px-2 py-2 font-medium text-gray-900">{patient.patientName}</td>
-                            <td className="px-2 py-2 text-gray-700">{patient.patientAge} yrs</td>
-                            <td className="px-2 py-2 text-gray-700">{patient.patientGender}</td>
-                            <td className="px-2 py-2 text-gray-700">{patient.patientPhone}</td>
-                            <td className="px-2 py-2 text-gray-700">{formatTimeTo12Hour(patient.time || '')}</td>
-                            <td className="px-2 py-2 text-center">
+                            <td className="px-3 py-3 font-bold text-gray-900 text-base">{index + 1}</td>
+                            <td className="px-3 py-3 font-semibold text-gray-900 text-base">{patient.patientName}</td>
+                            <td className="px-3 py-3 text-gray-700 text-base">{patient.patientAge} yrs</td>
+                            <td className="px-3 py-3 text-gray-700 text-base">{patient.patientGender}</td>
+                            <td className="px-3 py-3 text-gray-700 text-base">{patient.patientPhone}</td>
+                            <td className="px-3 py-3 text-gray-700 font-medium text-base">{formatTimeTo12Hour(patient.time || '')}</td>
+                            <td className="px-3 py-3 text-center">
                               {isActive && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-600 text-white">
+                                <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-bold bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-sm border border-blue-800">
                                   Active
                                 </span>
                               )}
                               {isNext && !isActive && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-600 text-white">
+                                <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-bold bg-gradient-to-r from-green-600 to-green-700 text-white shadow-sm border border-green-800">
                                   Next
                                 </span>
                               )}
                               {isReady && !isActive && !isNext && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-500 text-white">
+                                <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-bold bg-gradient-to-r from-yellow-500 to-yellow-600 text-white shadow-sm border border-yellow-700">
                                   Ready {readyNumber}
                                 </span>
                               )}
                               {!isActive && !isNext && !isReady && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-200 text-gray-700">
+                                <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-bold bg-gray-200 text-gray-700 border border-gray-300">
                                   Waiting
                                 </span>
                               )}
                             </td>
-                            <td className="px-2 py-2 text-center">
+                            <td className="px-3 py-3 text-center">
                               <button
                                 onClick={() => handleMarkReady(patient.id)}
                                 className={`
-                                  px-2 py-1 rounded text-xs font-medium transition-colors
+                                  px-3 py-1.5 rounded-md text-sm font-semibold transition-all shadow-sm hover:shadow-md
                                   ${isReady 
-                                    ? 'bg-red-100 text-red-700 hover:bg-red-200' 
-                                    : 'bg-green-100 text-green-700 hover:bg-green-200'
+                                    ? 'bg-gradient-to-r from-red-100 to-red-200 text-red-700 border border-red-300 hover:from-red-200 hover:to-red-300' 
+                                    : 'bg-gradient-to-r from-green-100 to-green-200 text-green-700 border border-green-300 hover:from-green-200 hover:to-green-300'
                                   }
                                 `}
                               >
@@ -723,21 +798,23 @@ const LivePatientPage: React.FC = () => {
 
               {/* Navigation Controls */}
               {filteredPatients.length > 0 && (
-                <div className="border-t border-gray-200 p-3 bg-gray-50 flex items-center justify-between">
+                <div className="border-t border-gray-200 p-3 bg-gradient-to-r from-gray-50 to-gray-100 flex items-center justify-between">
                   <button
                     onClick={handlePreviousPatient}
                     disabled={currentPatientIndex === 0}
-                    className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded-md text-xs font-medium hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-md text-sm font-semibold hover:bg-gray-50 hover:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
                   >
                     ← Previous
                   </button>
-                  <span className="text-xs text-gray-600 font-medium">
-                    Patient {currentPatientIndex + 1} of {filteredPatients.length}
-                  </span>
+                  <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-md border border-gray-200 shadow-sm">
+                    <span className="text-base text-gray-700 font-bold">
+                      Patient {currentPatientIndex + 1} of {filteredPatients.length}
+                    </span>
+                  </div>
                   <button
                     onClick={handleNextPatient}
                     disabled={currentPatientIndex === filteredPatients.length - 1}
-                    className="px-3 py-1.5 bg-primary-600 text-white rounded-md text-xs font-medium hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="px-4 py-2 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-md text-sm font-semibold hover:from-primary-700 hover:to-primary-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md"
                   >
                     Next →
                   </button>
@@ -749,11 +826,17 @@ const LivePatientPage: React.FC = () => {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="bg-white rounded-lg shadow-md p-12 text-center border border-gray-200"
+            className="bg-white rounded-lg shadow-sm p-6 text-center border border-gray-100"
           >
-            <CalendarIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Select Filters</h3>
-            <p className="text-sm text-gray-600">Please select location, date, and doctor to view live patients</p>
+            <div className="bg-gradient-to-br from-primary-50 to-secondary-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-3">
+              <CalendarIcon className="h-10 w-10 text-primary-600" />
+            </div>
+            <h3 className="text-base font-bold text-gray-900 mb-1">Select Filters</h3>
+            <p className="text-xs text-gray-600 mb-3">Please select location, date, and doctor to view live patients</p>
+            <div className="flex items-center justify-center gap-1.5 text-xs text-gray-500 bg-gray-50 px-3 py-1.5 rounded-md inline-flex">
+              <CheckCircleIcon className="h-3.5 w-3.5 text-primary-600" />
+              <span>Use the filters above to get started</span>
+            </div>
           </motion.div>
         )}
         </div>

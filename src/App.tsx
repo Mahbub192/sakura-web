@@ -66,12 +66,9 @@ const AppContent: React.FC = () => {
           <AuthLayout><RegisterPage /></AuthLayout>
         } />
         <Route path="/book-appointment" element={
-          isAuthenticated ? 
-          (user?.role === 'Assistant' ? 
-            <Navigate to="/assistants/booking" replace /> :
+          <ProtectedRoute>
             <DashboardLayout><PatientBookingPage /></DashboardLayout>
-          ) : 
-          <AuthLayout><BookAppointmentPage /></AuthLayout>
+          </ProtectedRoute>
         } />
         <Route path="/patients/view" element={
           <ProtectedRoute allowedRoles={['Admin', 'Doctor', 'Assistant']}>

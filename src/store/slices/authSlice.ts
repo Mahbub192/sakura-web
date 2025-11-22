@@ -13,9 +13,9 @@ interface AuthState {
 const initialState: AuthState = {
   user: null,
   token: localStorage.getItem('token'),
-  isLoading: false,
+  isLoading: !!localStorage.getItem('token'), // Set loading to true if token exists (need to verify)
   error: null,
-  isAuthenticated: !!localStorage.getItem('token'),
+  isAuthenticated: false, // Will be set to true after verification
 };
 
 // Async thunks
@@ -126,7 +126,10 @@ const authSlice = createSlice({
     // Get Current User
     builder
       .addCase(getCurrentUser.pending, (state) => {
-        state.isLoading = true;
+        // Only set loading if not already loading (to handle initial state)
+        if (!state.isLoading) {
+          state.isLoading = true;
+        }
       })
       .addCase(getCurrentUser.fulfilled, (state, action: PayloadAction<User>) => {
         state.isLoading = false;
@@ -138,6 +141,7 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload as string;
         state.isAuthenticated = false;
+        state.user = null;
         state.token = null;
         localStorage.removeItem('token');
       });

@@ -1,23 +1,12 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
-import { 
-  EyeIcon, 
-  EyeSlashIcon, 
-  EnvelopeIcon, 
-  LockClosedIcon,
-  HeartIcon,
-  ArrowRightIcon,
-  CheckCircleIcon,
-} from '@heroicons/react/24/outline';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { loginUser, clearError } from '../../store/slices/authSlice';
 import { LoginRequest } from '../../types';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
-import Button from '../../components/ui/Button';
 import { toast } from 'react-toastify';
 
 const schema = yup.object().shape({
@@ -61,289 +50,155 @@ const LoginPage: React.FC = () => {
   }, [dispatch]);
 
   return (
-    <div className=" flex overflow-hidden bg-gradient-to-br from-gray-50 via-white to-primary-50">
-      {/* Left Side - Form */}
-      <div className="flex-1 flex items-center justify-center py-4 px-4 sm:px-6 lg:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="w-full max-w-md"
-        >
-          {/* Logo & Header */}
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="text-center mb-4"
-          >
-            <div className="flex justify-center mb-3">
-              <motion.div
-                initial={{ scale: 0.8 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 200, damping: 15 }}
-                className="bg-gradient-to-br from-primary-600 to-secondary-600 p-3 rounded-xl shadow-lg"
-              >
-                <HeartIcon className="h-8 w-8 text-white" />
-              </motion.div>
+    <div className="relative flex min-h-screen w-full flex-col bg-background-light dark:bg-background-dark font-display">
+      <div className="flex-1 w-full">
+        <div className="flex min-h-screen">
+          {/* Left Side - Image (Hidden on mobile, shown on lg) */}
+          <div className="hidden lg:flex flex-1 items-center justify-center p-8 bg-slate-100 dark:bg-slate-900">
+            <div className="w-full max-w-md">
+              <div 
+                className="w-full bg-center bg-no-repeat bg-cover aspect-square rounded-xl"
+                style={{
+                  backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuBdYN9JbR2n48wjiZSibJWa5ve0Z_7G431jr3bBcYcIKsaS_KB6RdluSVMpmDmkzkgx_dMiqGK6R7pCstLDV6sntafm8uI-G-QSBipZEou1-eL3HifSLhFvj7RFAd7cE8Xu10TCwLKy0RSVWFgWLReti2IehcHTV3kS9ZNHxyJouelhj9vrmgZn0HAEGP19XUpUSnwZPiggt9WI1IMgd-wub9hNVaJqTZb_NkjMeez5-0HPmarGSdnM0o9llLWLLB7eFTmFPD4SOskt")'
+                }}
+              />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-1">
-              Welcome Back
-            </h1>
-            <p className="text-sm text-gray-600">
-              Sign in to access your account
-            </p>
-          </motion.div>
+          </div>
 
-          {/* Login Form */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            className="bg-white rounded-lg shadow-md p-5 border border-gray-200"
-          >
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-3.5">
-              {/* Email Field */}
+          {/* Right Side - Login Form */}
+          <div className="flex flex-1 flex-col justify-center px-4 py-12 sm:px-6 lg:flex-none lg:px-20 xl:px-24">
+            <div className="mx-auto w-full max-w-sm lg:w-96">
+              {/* Logo & Header */}
               <div>
-                <label htmlFor="email" className="block text-xs font-medium text-gray-700 mb-1">
-                  Email Address
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
-                    <EnvelopeIcon className="h-4 w-4 text-gray-400" />
-                  </div>
-                  <input
-                    {...register('email')}
-                    type="email"
-                    id="email"
-                    className="pl-9 pr-3 py-2 w-full border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all text-sm"
-                    placeholder="you@example.com"
-                  />
+                <div className="flex items-center gap-3 mb-8">
+                  <svg className="h-8 w-8 text-primary" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2C11.3768 2 10.7601 2.11504 10.1764 2.3387C9.59272 2.56237 9.05146 2.88998 8.58045 3.30335L8.58579 3.29801C8.11009 3.71536 7.69673 4.21262 7.36979 4.76742C7.04285 5.32223 6.8088 5.92543 6.67876 6.55627C6.01533 9.42398 7.21855 12.4431 9.49123 14.1804L9.49124 14.1804L9.49392 14.1825C9.49526 14.1835 9.4966 14.1846 9.49794 14.1857C10.0883 14.6548 10.771 15 11.5 15C12.229 15 12.9117 14.6548 13.5021 14.1857C13.5034 14.1846 13.5047 14.1835 13.5061 14.1825L13.5088 14.1804C15.7815 12.4431 16.9847 9.42398 16.3212 6.55627C16.1912 5.92543 15.9572 5.32223 15.6302 4.76742C15.3033 4.21262 14.8899 3.71536 14.4142 3.29801L14.4196 3.30335C13.9485 2.88998 13.4073 2.56237 12.8236 2.3387C12.2399 2.11504 11.6232 2 12 2ZM12 16C10.7779 16 9.60537 16.4741 8.74264 17.2929C7.87991 18.1116 7.40909 19.2319 7.40909 20.4C7.40909 20.8418 7.74901 21.2 8.18182 21.2C8.61463 21.2 8.95455 20.8418 8.95455 20.4C8.95455 19.6131 9.27136 18.859 9.85109 18.2929C10.4308 17.7268 11.1963 17.4545 12 17.4545C12.8037 17.4545 13.5692 17.7268 14.1489 18.2929C14.7286 18.859 15.0455 19.6131 15.0455 20.4C15.0455 20.8418 15.3854 21.2 15.8182 21.2C16.251 21.2 16.5909 20.8418 16.5909 20.4C16.5909 19.2319 16.1201 18.1116 15.2574 17.2929C14.3946 16.4741 13.2221 16 12 16Z"></path>
+                  </svg>
+                  <span className="text-2xl font-bold text-slate-800 dark:text-slate-200">Sakura</span>
                 </div>
-                {errors.email && (
-                  <motion.p
-                    initial={{ opacity: 0, y: -5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mt-1 text-xs text-red-600"
-                  >
-                    {errors.email.message}
-                  </motion.p>
-                )}
+                <div className="flex min-w-72 flex-col gap-3">
+                  <p className="text-slate-900 dark:text-white text-4xl font-black leading-tight tracking-[-0.033em]">
+                    Welcome Back
+                  </p>
+                  <p className="text-slate-500 dark:text-slate-400 text-base font-normal leading-normal">
+                    Securely access your patient portal.
+                  </p>
+                </div>
               </div>
 
-              {/* Password Field */}
-              <div>
-                <label htmlFor="password" className="block text-xs font-medium text-gray-700 mb-1">
-                  Password
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
-                    <LockClosedIcon className="h-4 w-4 text-gray-400" />
-                  </div>
-                  <input
-                    {...register('password')}
-                    type={showPassword ? 'text' : 'password'}
-                    id="password"
-                    className="pl-9 pr-9 py-2 w-full border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all text-sm"
-                    placeholder="••••••••"
-                  />
-                  <button
-                    type="button"
-                    className="absolute inset-y-0 right-0 pr-2.5 flex items-center hover:text-primary-600 transition-colors"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? (
-                      <EyeSlashIcon className="h-4 w-4 text-gray-400 hover:text-gray-600" />
-                    ) : (
-                      <EyeIcon className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+              {/* Login Form */}
+              <div className="mt-10">
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" method="POST">
+                  {/* Email Field */}
+                  <div className="flex flex-col min-w-40 flex-1">
+                    <label 
+                      className="text-slate-800 dark:text-slate-300 text-base font-medium leading-normal pb-2" 
+                      htmlFor="email"
+                    >
+                      Email Address
+                    </label>
+                    <input
+                      {...register('email')}
+                      autoComplete="email"
+                      className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-slate-900 dark:text-slate-100 focus:outline-0 focus:ring-2 focus:ring-primary/20 border border-slate-300 dark:border-slate-700 bg-background-light dark:bg-background-dark focus:border-primary/50 dark:focus:border-primary/50 h-14 placeholder:text-slate-400 dark:placeholder:text-slate-500 p-[15px] text-base font-normal leading-normal"
+                      id="email"
+                      name="email"
+                      placeholder="Enter your email"
+                      required
+                      type="email"
+                    />
+                    {errors.email && (
+                      <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
                     )}
-                  </button>
-                </div>
-                {errors.password && (
-                  <motion.p
-                    initial={{ opacity: 0, y: -5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mt-1 text-xs text-red-600"
-                  >
-                    {errors.password.message}
-                  </motion.p>
-                )}
-              </div>
-
-              {/* Remember Me & Forgot Password */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <input
-                    id="remember-me"
-                    name="remember-me"
-                    type="checkbox"
-                    className="h-3.5 w-3.5 text-primary-600 focus:ring-primary-500 border-gray-300 rounded cursor-pointer"
-                  />
-                  <label htmlFor="remember-me" className="ml-1.5 block text-xs text-gray-600 cursor-pointer">
-                    Remember me
-                  </label>
-                </div>
-                <Link
-                  to="#"
-                  className="text-xs font-medium text-primary-600 hover:text-primary-700 transition-colors"
-                >
-                  Forgot password?
-                </Link>
-              </div>
-
-              {/* Error Message */}
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-red-50 border border-red-200 rounded-md p-2"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <svg className="h-3.5 w-3.5 text-red-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                    </svg>
-                    <p className="text-xs text-red-700">{error}</p>
                   </div>
-                </motion.div>
-              )}
 
-              {/* Submit Button */}
-              <Button
-                type="submit"
-                variant="primary"
-                disabled={isLoading}
-                className="w-full py-2 text-sm font-semibold shadow-md hover:shadow-lg transition-shadow"
-              >
-                {isLoading ? (
-                  <>
-                    <LoadingSpinner size="sm" className="mr-2" />
-                    Signing in...
-                  </>
-                ) : (
-                  <>
-                    Sign In
-                    <ArrowRightIcon className="h-3.5 w-3.5 ml-2" />
-                  </>
-                )}
-              </Button>
+                  {/* Password Field */}
+                  <div className="flex flex-col min-w-40 flex-1">
+                    <label 
+                      className="text-slate-800 dark:text-slate-300 text-base font-medium leading-normal pb-2" 
+                      htmlFor="password"
+                    >
+                      Password
+                    </label>
+                    <div className="relative flex w-full flex-1 items-stretch">
+                      <input
+                        {...register('password')}
+                        autoComplete="current-password"
+                        className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-slate-900 dark:text-slate-100 focus:outline-0 focus:ring-2 focus:ring-primary/20 border border-slate-300 dark:border-slate-700 bg-background-light dark:bg-background-dark focus:border-primary/50 dark:focus:border-primary/50 h-14 placeholder:text-slate-400 dark:placeholder:text-slate-500 p-[15px] pr-12 text-base font-normal leading-normal"
+                        id="password"
+                        name="password"
+                        placeholder="Enter your password"
+                        required
+                        type={showPassword ? 'text' : 'password'}
+                      />
+                      <button
+                        aria-label="Toggle password visibility"
+                        className="text-slate-500 dark:text-slate-400 absolute inset-y-0 right-0 flex items-center justify-center pr-3"
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        <span className="material-symbols-outlined">
+                          {showPassword ? 'visibility_off' : 'visibility'}
+                        </span>
+                      </button>
+                    </div>
+                    {errors.password && (
+                      <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+                    )}
+                  </div>
 
+                  {/* Forgot Password */}
+                  <div className="flex items-center justify-end">
+                    <div className="text-sm leading-6">
+                      <Link 
+                        className="font-semibold text-primary hover:text-primary/80" 
+                        to="#"
+                      >
+                        Forgot Password?
+                      </Link>
+                    </div>
+                  </div>
 
-              {/* Sign Up Link */}
-              <div className="text-center pt-1">
-                <span className="text-xs text-gray-600">
+                  {/* Error Message */}
+                  {error && (
+                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                      <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
+                    </div>
+                  )}
+
+                  {/* Submit Button */}
+                  <div>
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="flex w-full justify-center items-center rounded-lg bg-primary px-3 py-4 text-base font-semibold leading-6 text-white shadow-sm hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {isLoading ? (
+                        <>
+                          <LoadingSpinner size="sm" className="mr-2" />
+                          Signing in...
+                        </>
+                      ) : (
+                        'Login'
+                      )}
+                    </button>
+                  </div>
+                </form>
+
+                {/* Sign Up Link */}
+                <p className="mt-10 text-center text-sm text-slate-500 dark:text-slate-400">
                   Don't have an account?{' '}
                   <Link
                     to="/register"
-                    className="font-semibold text-primary-600 hover:text-primary-700 transition-colors"
+                    className="font-semibold leading-6 text-primary hover:text-primary/80"
                   >
-                    Sign up
+                    Sign Up
                   </Link>
-                </span>
-              </div>
-            </form>
-          </motion.div>
-
-          {/* Demo Credentials */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4 }}
-            className="mt-4 bg-gradient-to-r from-primary-50/50 to-secondary-50/50 rounded-md p-3 border border-primary-100/50"
-          >
-            <h3 className="text-xs font-semibold text-gray-800 mb-2 flex items-center gap-1">
-              <CheckCircleIcon className="h-3.5 w-3.5 text-primary-600" />
-              Quick Demo Access
-            </h3>
-            <div className="space-y-1 text-xs">
-              <div className="flex items-start gap-1.5">
-                <span className="font-medium text-gray-700 min-w-[50px]">Admin:</span>
-                <span className="text-gray-600">admin@hospital.com / admin123</span>
-              </div>
-              <div className="flex items-start gap-1.5">
-                <span className="font-medium text-gray-700 min-w-[50px]">User:</span>
-                <span className="text-gray-600">Register for a new account</span>
+                </p>
               </div>
             </div>
-          </motion.div>
-        </motion.div>
-      </div>
-
-      {/* Right Side - Decorative/Info Panel */}
-      <div className="hidden lg:flex lg:flex-1 bg-gradient-to-br from-primary-600 via-primary-700 to-secondary-600 text-white relative overflow-hidden">
-        {/* Animated Background Gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary-600/90 via-secondary-600/90 to-primary-700/90"></div>
-        
-        {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-5">
-          <div className="absolute inset-0" style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-          }}></div>
+          </div>
         </div>
-
-        {/* Floating Orbs */}
-        <div className="absolute top-10 right-10 w-48 h-48 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-10 left-10 w-36 h-36 bg-secondary-400/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
-
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.3 }}
-          className="relative z-10 flex flex-col justify-center items-center p-8 text-center"
-        >
-          <motion.div
-            initial={{ scale: 0.8, rotate: -10 }}
-            animate={{ scale: 1, rotate: 0 }}
-            transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.5 }}
-            className="mb-5"
-          >
-            <div className="w-20 h-20 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center shadow-2xl border border-white/30">
-              <HeartIcon className="h-10 w-10 text-white" />
-            </div>
-          </motion.div>
-
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 }}
-            className="text-2xl font-bold mb-3"
-          >
-            Your Health, Our Priority
-          </motion.h2>
-
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.7 }}
-            className="text-sm text-primary-100 mb-5 max-w-md leading-relaxed"
-          >
-            Access expert healthcare services with ease. Book appointments, manage your health records, and get the care you deserve.
-          </motion.p>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8 }}
-            className="space-y-2 text-left max-w-sm w-full"
-          >
-            {[
-              { icon: CheckCircleIcon, text: '24/7 Appointment Booking' },
-              { icon: CheckCircleIcon, text: 'Expert Medical Professionals' },
-              { icon: CheckCircleIcon, text: 'Secure Health Records' },
-              { icon: CheckCircleIcon, text: 'Easy Appointment Management' },
-            ].map((feature, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.8 + index * 0.1 }}
-                className="flex items-center gap-2 bg-white/5 backdrop-blur-sm rounded-md p-1.5 border border-white/10"
-              >
-                <feature.icon className="h-4 w-4 text-white flex-shrink-0" />
-                <span className="text-primary-50 text-xs">{feature.text}</span>
-              </motion.div>
-            ))}
-          </motion.div>
-        </motion.div>
       </div>
     </div>
   );

@@ -8,10 +8,11 @@ export const useAuth = () => {
 
   useEffect(() => {
     // If we have a token but no user data, fetch the current user
-    if (token && !user && !isLoading) {
+    // This will verify the token and get user data
+    if (token && !user) {
       dispatch(getCurrentUser());
     }
-  }, [token, user, isLoading, dispatch]);
+  }, [token, user, dispatch]);
 
   return {
     user,

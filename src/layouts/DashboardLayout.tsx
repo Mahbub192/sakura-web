@@ -169,20 +169,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             }
           `}</style>
           
-          <div className="py-6 sm:py-8 px-4 sm:px-6 lg:px-8 min-h-full">
-            <div className="max-w-7xl mx-auto">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ 
-                  duration: 0.5,
-                  ease: [0.25, 0.1, 0.25, 1]
-                }}
-                className="space-y-6"
-              >
-                {children}
-              </motion.div>
-            </div>
+          <div className="min-h-full w-full px-[20px] py-[20px]">
+            {children}
           </div>
           </main>
         </div>

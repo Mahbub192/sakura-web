@@ -422,7 +422,7 @@ const HomePage: React.FC = () => {
                   With over 15 years of experience in Otolaryngology, I am committed to providing the highest standard of care. My approach is centered on building a trusting relationship with each patient, ensuring you feel heard, understood, and confident in your treatment plan. I believe in empowering my patients through education and collaborative decision-making.
                 </p>
                 <button
-                  onClick={() => navigate('/book-appointment')}
+                  onClick={() => navigate('/about-me')}
                   className="mt-6 flex items-center justify-center rounded-lg h-11 px-6 bg-secondary text-white font-bold tracking-wide transition-colors hover:bg-secondary/90"
                 >
                   <span>Learn More About Me</span>

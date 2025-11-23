@@ -1,27 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { format } from 'date-fns';
-import { 
-  UsersIcon,
-  CalendarIcon,
-  MapPinIcon,
-  PhoneIcon,
-  EnvelopeIcon,
-  HeartIcon,
-  AcademicCapIcon,
-  BuildingOfficeIcon,
-  ClockIcon,
-  UserCircleIcon,
-  ArrowRightIcon,
-  CheckCircleIcon,
-} from '@heroicons/react/24/outline';
-import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { useAuth } from '../../hooks/useAuth';
 import { fetchTokenAppointments } from '../../store/slices/appointmentSlice';
 import { fetchClinics } from '../../store/slices/clinicSlice';
 import { fetchDoctors, fetchCurrentDoctorProfile } from '../../store/slices/doctorSlice';
+import Modal from '../../components/ui/Modal';
+import Calendar from '../../components/ui/Calendar';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { toast } from 'react-toastify';
 import { TokenAppointment, Doctor } from '../../types';
@@ -52,22 +38,25 @@ const PatientsViewPage: React.FC = () => {
   const { clinics } = useAppSelector(state => state.clinics);
   const { doctors, currentDoctorProfile } = useAppSelector(state => state.doctors);
   
+  const [showCalendarModal, setShowCalendarModal] = useState(false);
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState<Date | undefined>(undefined);
   const [selectedLocation, setSelectedLocation] = useState<number | ''>('');
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedDoctorFilter, setSelectedDoctorFilter] = useState<number | ''>('');
   const [filteredPatients, setFilteredPatients] = useState<TokenAppointment[]>([]);
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
+  const [selectedPatient, setSelectedPatient] = useState<TokenAppointment | null>(null);
+  const [showPatientDetails, setShowPatientDetails] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     if (isAssistant) {
-      // For assistants, fetch their assigned doctor's profile
       dispatch(fetchCurrentDoctorProfile());
     }
     dispatch(fetchClinics());
     dispatch(fetchDoctors());
   }, [dispatch, isAssistant]);
   
-  // For assistants, automatically set their assigned doctor
   useEffect(() => {
     if (isAssistant && currentDoctorProfile) {
       setSelectedDoctorFilter(currentDoctorProfile.id);
@@ -92,7 +81,7 @@ const PatientsViewPage: React.FC = () => {
     }
 
     try {
-      // For assistants, always use their assigned doctor's ID
+      setRefreshing(true);
       const doctorIdToUse = isAssistant && currentDoctorProfile 
         ? currentDoctorProfile.id 
         : (selectedDoctorFilter ? Number(selectedDoctorFilter) : undefined);
@@ -105,7 +94,6 @@ const PatientsViewPage: React.FC = () => {
       
       setFilteredPatients(result);
       
-      // Set the doctor from filter or first doctor from results
       if (isAssistant && currentDoctorProfile) {
         setSelectedDoctor(currentDoctorProfile);
       } else if (selectedDoctorFilter) {
@@ -122,308 +110,401 @@ const PatientsViewPage: React.FC = () => {
       toast.error(errorMessage);
       setFilteredPatients([]);
       setSelectedDoctor(null);
+    } finally {
+      setRefreshing(false);
     }
   };
 
   const selectedClinic = clinics.find(c => c.id === Number(selectedLocation));
 
+  // Calculate stats
+  const statsData = useMemo(() => {
+    const totalPatients = filteredPatients.length;
+    const confirmed = filteredPatients.filter(p => p.status === 'Confirmed').length;
+    const pending = filteredPatients.filter(p => p.status === 'Pending').length;
+    const completed = filteredPatients.filter(p => p.status === 'Completed').length;
+    const cancelled = filteredPatients.filter(p => p.status === 'Cancelled').length;
+
+    return {
+      totalPatients,
+      confirmed,
+      pending,
+      completed,
+      cancelled,
+    };
+  }, [filteredPatients]);
+
+  const { totalPatients, confirmed, pending, completed, cancelled } = statsData;
+
+  const getStatusBadgeClass = (status: string) => {
+    switch (status) {
+      case 'Confirmed':
+        return 'text-green-600 dark:text-green-500 bg-green-100 dark:bg-green-900/50';
+      case 'Pending':
+        return 'text-yellow-600 dark:text-yellow-500 bg-yellow-100 dark:bg-yellow-900/50';
+      case 'Completed':
+        return 'text-blue-600 dark:text-blue-500 bg-blue-100 dark:bg-blue-900/50';
+      case 'Cancelled':
+        return 'text-red-600 dark:text-red-500 bg-red-100 dark:bg-red-900/50';
+      default:
+        return 'text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800';
+    }
+  };
+
+  const handleCalendarDateSelect = (date: Date) => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    setSelectedDate(dateStr);
+    setSelectedCalendarDate(date);
+    setShowCalendarModal(false);
+    toast.success(`Selected date: ${format(date, 'MMM dd, yyyy')}`);
+  };
+
+  useEffect(() => {
+    if (selectedDate) {
+      setSelectedCalendarDate(new Date(selectedDate));
+    } else {
+      setSelectedCalendarDate(undefined);
+    }
+  }, [selectedDate]);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-4 px-4">
-      <div className="container mx-auto" style={{ maxWidth: '90%' }}>
+    <div className="font-display bg-background-light dark:bg-background-dark text-gray-800 dark:text-gray-200 w-full">
+      <div className="w-full">
         {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-3"
-        >
-          <div className="bg-gradient-to-r from-primary-600 to-secondary-600 rounded-lg shadow-md p-3 border border-gray-200 relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent"></div>
-            <div className="relative">
-              <h1 className="text-lg font-bold text-white mb-0.5 flex items-center gap-2">
-                <div className="bg-white/20 backdrop-blur-sm p-1.5 rounded-lg">
-                  <UsersIcon className="h-4 w-4 text-white" />
-                </div>
-                Patient Management
-              </h1>
-              <p className="text-xs text-white/90">View patients by location, date and doctor</p>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="flex items-center justify-center size-8 rounded-full bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            >
+              <span className="material-symbols-outlined text-xl">arrow_back</span>
+            </button>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Patient Management</h1>
+              <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">View patients by location, date and doctor</p>
             </div>
           </div>
-        </motion.div>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <button
+              onClick={handleFilter}
+              disabled={refreshing || !selectedLocation || !selectedDate}
+              className="flex items-center justify-center gap-1 sm:gap-2 rounded-lg h-10 px-2 sm:px-4 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-semibold leading-normal border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+            >
+              <span className="material-symbols-outlined text-xl">refresh</span>
+              <span className="hidden sm:inline">Refresh</span>
+            </button>
+            <button
+              onClick={() => setShowCalendarModal(true)}
+              className="flex items-center justify-center gap-1 sm:gap-2 rounded-lg h-10 px-2 sm:px-4 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-semibold leading-normal border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
+            >
+              <span className="material-symbols-outlined text-xl">calendar_month</span>
+              <span className="hidden sm:inline">Calendar</span>
+            </button>
+          </div>
+        </div>
 
-        {/* Filters */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="mb-3"
-        >
-          <div className="bg-white rounded-lg shadow-sm p-3 border border-gray-100">
-            <div className="flex flex-wrap items-end gap-2">
-              {/* Location Select */}
-              <div className="relative flex-1 min-w-[200px]">
-                <label className="block text-xs font-medium text-gray-700 mb-1">
-                  <MapPinIcon className="h-3.5 w-3.5 inline mr-1 text-primary-600" />
-                  Location
-                </label>
-                <select
-                  value={selectedLocation}
-                  onChange={(e) => setSelectedLocation(e.target.value ? Number(e.target.value) : '')}
-                  className="w-full text-xs px-2.5 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
-                >
-                  <option value="">Choose location...</option>
-                  {clinics.map((clinic) => (
-                    <option key={clinic.id} value={clinic.id}>
-                      {clinic.locationName} - {clinic.city}
-                    </option>
-                  ))}
-                </select>
+        {/* Stats Cards */}
+        {selectedLocation && selectedDate && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6 mb-6">
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4 rounded-lg flex items-center gap-4">
+              <div className="bg-blue-100 dark:bg-blue-900/50 p-3 rounded-full">
+                <span className="material-symbols-outlined text-blue-600 dark:text-blue-400">people</span>
               </div>
-
-              {/* Date Select */}
-              <div className="relative flex-1 min-w-[150px]">
-                <label className="block text-xs font-medium text-gray-700 mb-1">
-                  <CalendarIcon className="h-3.5 w-3.5 inline mr-1 text-primary-600" />
-                  Date
-                </label>
-                <input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  className="w-full text-xs px-2.5 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
-                  min={new Date().toISOString().split('T')[0]}
-                />
-              </div>
-
-              {/* Doctor Select */}
-              <div className="relative flex-1 min-w-[180px]">
-                <label className="block text-xs font-medium text-gray-700 mb-1">
-                  <HeartIcon className="h-3.5 w-3.5 inline mr-1 text-primary-600" />
-                  Doctor
-                </label>
-                <select
-                  value={isAssistant && currentDoctorProfile ? currentDoctorProfile.id : selectedDoctorFilter}
-                  onChange={(e) => setSelectedDoctorFilter(e.target.value ? Number(e.target.value) : '')}
-                  disabled={isAssistant}
-                  className={`w-full text-xs px-2.5 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white ${
-                    isAssistant ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''
-                  }`}
-                >
-                  <option value="">All Doctors</option>
-                  {doctors.map((doctor) => (
-                    <option key={doctor.id} value={doctor.id}>
-                      Dr. {doctor.name}
-                    </option>
-                  ))}
-                </select>
-                {isAssistant && currentDoctorProfile && (
-                  <p className="text-xs text-gray-500 mt-0.5">Showing patients for your assigned doctor</p>
-                )}
-              </div>
-
-              {/* Filter Button */}
-              <div className="flex-shrink-0">
-                <button
-                  onClick={handleFilter}
-                  disabled={!selectedLocation || !selectedDate || isLoading}
-                  className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white font-semibold text-xs py-1.5 px-4 rounded-md transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
-                >
-                  {isLoading ? (
-                    <>
-                      <LoadingSpinner size="sm" />
-                      Loading...
-                    </>
-                  ) : (
-                    <>
-                      <UsersIcon className="h-3.5 w-3.5" />
-                      View Patients
-                    </>
-                  )}
-                </button>
+              <div>
+                <p className="text-gray-500 dark:text-gray-400 text-sm">Total Patients</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalPatients}</p>
               </div>
             </div>
-
-            {/* Selected Filters Info */}
-            {(selectedLocation || selectedDate || selectedDoctorFilter) && (
-              <div className="mt-2 p-2 bg-gradient-to-r from-primary-50 to-secondary-50 rounded-md border border-primary-200">
-                <div className="flex flex-wrap items-center gap-2 text-xs">
-                  {selectedClinic && (
-                    <div className="flex items-center gap-1 bg-white px-2 py-1 rounded-md shadow-sm">
-                      <MapPinIcon className="h-3 w-3 text-primary-600" />
-                      <span className="font-semibold text-gray-700">{selectedClinic.locationName}</span>
-                    </div>
-                  )}
-                  {selectedDate && (
-                    <div className="flex items-center gap-1 bg-white px-2 py-1 rounded-md shadow-sm">
-                      <CalendarIcon className="h-3 w-3 text-primary-600" />
-                      <span className="font-semibold text-gray-700">
-                        {format(new Date(selectedDate), 'MMM dd, yyyy')}
-                      </span>
-                    </div>
-                  )}
-                  {(selectedDoctorFilter || (isAssistant && currentDoctorProfile)) && (
-                    <div className="flex items-center gap-1 bg-white px-2 py-1 rounded-md shadow-sm">
-                      <HeartIcon className="h-3 w-3 text-primary-600" />
-                      <span className="font-semibold text-gray-700">
-                        {isAssistant && currentDoctorProfile
-                          ? `Dr. ${currentDoctorProfile.name}`
-                          : doctors.find(d => d.id === Number(selectedDoctorFilter))?.name 
-                            ? `Dr. ${doctors.find(d => d.id === Number(selectedDoctorFilter))?.name}` 
-                            : 'Doctor'}
-                      </span>
-                    </div>
-                  )}
-                  {filteredPatients.length > 0 && (
-                    <div className="flex items-center gap-1 bg-gradient-to-r from-primary-600 to-secondary-600 text-white px-2 py-1 rounded-md shadow-sm ml-auto">
-                      <UsersIcon className="h-3 w-3" />
-                      <span className="font-bold">
-                        {filteredPatients.length} Patient{filteredPatients.length !== 1 ? 's' : ''}
-                      </span>
-                    </div>
-                  )}
-                </div>
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4 rounded-lg flex items-center gap-4">
+              <div className="bg-green-100 dark:bg-green-900/50 p-3 rounded-full">
+                <span className="material-symbols-outlined text-green-600 dark:text-green-400">check_circle</span>
               </div>
+              <div>
+                <p className="text-gray-500 dark:text-gray-400 text-sm">Confirmed</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{confirmed}</p>
+              </div>
+            </div>
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4 rounded-lg flex items-center gap-4">
+              <div className="bg-yellow-100 dark:bg-yellow-900/50 p-3 rounded-full">
+                <span className="material-symbols-outlined text-yellow-600 dark:text-yellow-400">schedule</span>
+              </div>
+              <div>
+                <p className="text-gray-500 dark:text-gray-400 text-sm">Pending</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{pending}</p>
+              </div>
+            </div>
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4 rounded-lg flex items-center gap-4">
+              <div className="bg-indigo-100 dark:bg-indigo-900/50 p-3 rounded-full">
+                <span className="material-symbols-outlined text-indigo-600 dark:text-indigo-400">done_all</span>
+              </div>
+              <div>
+                <p className="text-gray-500 dark:text-gray-400 text-sm">Completed</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{completed}</p>
+              </div>
+            </div>
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4 rounded-lg flex items-center gap-4">
+              <div className="bg-red-100 dark:bg-red-900/50 p-3 rounded-full">
+                <span className="material-symbols-outlined text-red-600 dark:text-red-400">cancel</span>
+              </div>
+              <div>
+                <p className="text-gray-500 dark:text-gray-400 text-sm">Cancelled</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{cancelled}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Filters Section */}
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-3 sm:p-4 rounded-lg mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 mb-4">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Filters</h3>
+            {(selectedLocation || selectedDate || selectedDoctorFilter) && (
+              <button
+                onClick={() => {
+                  setSelectedLocation('');
+                  setSelectedDate('');
+                  setSelectedDoctorFilter('');
+                  setFilteredPatients([]);
+                  setSelectedDoctor(null);
+                }}
+                className="flex items-center justify-center gap-1 sm:gap-2 rounded-lg h-8 px-2 sm:px-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs sm:text-sm font-medium border border-gray-300 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700"
+              >
+                <span className="material-symbols-outlined text-lg">close</span>
+                <span>Clear Filters</span>
+              </button>
             )}
           </div>
-        </motion.div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div className="relative">
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <span className="material-symbols-outlined text-sm align-middle mr-1">location_on</span>
+                Location
+              </label>
+              <select
+                value={selectedLocation}
+                onChange={(e) => setSelectedLocation(e.target.value ? Number(e.target.value) : '')}
+                className="w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 shadow-sm focus:border-primary focus:ring-primary px-3 py-2 text-sm"
+              >
+                <option value="">Choose location...</option>
+                {clinics.map((clinic) => (
+                  <option key={clinic.id} value={clinic.id}>
+                    {clinic.locationName} - {clinic.city}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="relative">
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <span className="material-symbols-outlined text-sm align-middle mr-1">calendar_month</span>
+                Date
+              </label>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 shadow-sm focus:border-primary focus:ring-primary px-3 py-2 text-sm"
+                min={new Date().toISOString().split('T')[0]}
+              />
+            </div>
+
+            <div className="relative">
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <span className="material-symbols-outlined text-sm align-middle mr-1">person</span>
+                Doctor
+              </label>
+              <select
+                value={isAssistant && currentDoctorProfile ? currentDoctorProfile.id : selectedDoctorFilter}
+                onChange={(e) => setSelectedDoctorFilter(e.target.value ? Number(e.target.value) : '')}
+                disabled={isAssistant}
+                className={`w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 shadow-sm focus:border-primary focus:ring-primary px-3 py-2 text-sm ${
+                  isAssistant ? 'bg-gray-100 dark:bg-gray-700 cursor-not-allowed opacity-60' : ''
+                }`}
+              >
+                <option value="">All Doctors</option>
+                {doctors.map((doctor) => (
+                  <option key={doctor.id} value={doctor.id}>
+                    Dr. {doctor.name}
+                  </option>
+                ))}
+              </select>
+              {isAssistant && currentDoctorProfile && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Showing patients for your assigned doctor</p>
+              )}
+            </div>
+
+            <div className="flex items-end">
+              <button
+                onClick={handleFilter}
+                disabled={!selectedLocation || !selectedDate || isLoading}
+                className="w-full flex items-center justify-center gap-2 rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal shadow-sm hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading ? (
+                  <>
+                    <LoadingSpinner size="sm" />
+                    <span>Loading...</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined text-xl">search</span>
+                    <span>View Patients</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Selected Filters Info */}
+          {(selectedLocation || selectedDate || selectedDoctorFilter) && (
+            <div className="mt-4 p-3 bg-gradient-to-r from-primary-50 to-secondary-50 dark:from-primary-900/20 dark:to-secondary-900/20 rounded-md border border-primary-200 dark:border-primary-800">
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                {selectedClinic && (
+                  <div className="flex items-center gap-1 bg-white dark:bg-gray-800 px-2 py-1 rounded-md shadow-sm">
+                    <span className="material-symbols-outlined text-sm text-primary-600 dark:text-primary-400">location_on</span>
+                    <span className="font-semibold text-gray-700 dark:text-gray-300">{selectedClinic.locationName}</span>
+                  </div>
+                )}
+                {selectedDate && (
+                  <div className="flex items-center gap-1 bg-white dark:bg-gray-800 px-2 py-1 rounded-md shadow-sm">
+                    <span className="material-symbols-outlined text-sm text-primary-600 dark:text-primary-400">calendar_month</span>
+                    <span className="font-semibold text-gray-700 dark:text-gray-300">
+                      {format(new Date(selectedDate), 'MMM dd, yyyy')}
+                    </span>
+                  </div>
+                )}
+                {(selectedDoctorFilter || (isAssistant && currentDoctorProfile)) && (
+                  <div className="flex items-center gap-1 bg-white dark:bg-gray-800 px-2 py-1 rounded-md shadow-sm">
+                    <span className="material-symbols-outlined text-sm text-primary-600 dark:text-primary-400">person</span>
+                    <span className="font-semibold text-gray-700 dark:text-gray-300">
+                      {isAssistant && currentDoctorProfile
+                        ? `Dr. ${currentDoctorProfile.name}`
+                        : doctors.find(d => d.id === Number(selectedDoctorFilter))?.name 
+                          ? `Dr. ${doctors.find(d => d.id === Number(selectedDoctorFilter))?.name}` 
+                          : 'Doctor'}
+                    </span>
+                  </div>
+                )}
+                {filteredPatients.length > 0 && (
+                  <div className="flex items-center gap-1 bg-gradient-to-r from-primary-600 to-secondary-600 text-white px-2 py-1 rounded-md shadow-sm ml-auto">
+                    <span className="material-symbols-outlined text-sm">people</span>
+                    <span className="font-bold">
+                      {filteredPatients.length} Patient{filteredPatients.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Main Content - Split View */}
-        {selectedLocation && selectedDate && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="grid grid-cols-1 lg:grid-cols-5 gap-4"
-          >
-            {/* Left Side - Doctor Information (35% width) */}
-            <div className="lg:col-span-2 bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
-              <div className="bg-gradient-to-br from-primary-600 via-primary-700 to-secondary-600 p-3 text-white relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent"></div>
-                <div className="relative">
-                  <h2 className="text-base font-bold mb-0.5 flex items-center gap-2">
-                    <div className="bg-white/20 backdrop-blur-sm p-1 rounded-lg">
-                      <HeartIcon className="h-4 w-4" />
-                    </div>
-                    Doctor Information
-                  </h2>
-                  <p className="text-xs text-white/90">Appointment details</p>
-                </div>
-              </div>
-              
+        {selectedLocation && selectedDate ? (
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6">
+            {/* Left Side - Doctor Information */}
+            <div className="lg:col-span-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm overflow-hidden">
               {isLoading ? (
-                <div className="p-6 text-center">
+                <div className="p-8 text-center">
                   <LoadingSpinner size="md" />
-                  <p className="text-xs text-gray-600 mt-2">Loading doctor information...</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-3">Loading doctor information...</p>
                 </div>
               ) : selectedDoctor ? (
-                <div className="p-3 space-y-2">
+                <div className="p-5 space-y-4">
                   {/* Doctor Header */}
-                  <div className="flex items-center space-x-2.5 pb-2 border-b border-gray-200">
-                    <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-full flex items-center justify-center shadow-md flex-shrink-0">
-                      <HeartIcon className="h-6 w-6 text-white" />
+                  <div className="flex items-center space-x-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+                    <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-full flex items-center justify-center shadow-md">
+                      <span className="material-symbols-outlined text-white text-2xl">person</span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-base font-bold text-gray-900 truncate">Dr. {selectedDoctor.name}</h3>
-                      <p className="text-primary-600 font-semibold text-xs truncate">{selectedDoctor.specialization}</p>
-                      <div className="flex items-center gap-0.5 mt-0.5">
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-white truncate">Dr. {selectedDoctor.name}</h3>
+                      <p className="text-primary-600 dark:text-primary-400 font-medium text-sm truncate mt-0.5">{selectedDoctor.specialization}</p>
+                      <div className="flex items-center gap-1 mt-1.5">
                         {[1, 2, 3, 4, 5].map((star) => (
-                          <StarIconSolid key={star} className="h-2.5 w-2.5 text-yellow-400" />
+                          <span key={star} className="text-yellow-400 text-sm">★</span>
                         ))}
-                        <span className="ml-1 text-xs text-gray-600">(4.9)</span>
+                        <span className="ml-1.5 text-xs text-gray-600 dark:text-gray-400">4.9</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Doctor Details */}
-                  <div className="space-y-1.5">
+                  {/* Doctor Details - Simple Design */}
+                  <div className="space-y-3">
                     {selectedDoctor.experience && (
-                      <div className="flex items-center gap-2 p-1.5 bg-gradient-to-r from-gray-50 to-gray-100/50 rounded-md hover:shadow-sm transition-shadow">
-                        <div className="bg-primary-100 p-1 rounded-md">
-                          <AcademicCapIcon className="h-3.5 w-3.5 text-primary-600 flex-shrink-0" />
+                      <div className="flex items-center gap-3">
+                        <div className="bg-primary-100 dark:bg-primary-900/50 p-2 rounded-lg">
+                          <span className="material-symbols-outlined text-primary-600 dark:text-primary-400 text-lg">school</span>
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs text-gray-600">Experience</p>
-                          <p className="font-bold text-xs text-gray-900">{selectedDoctor.experience} years</p>
+                        <div className="flex-1">
+                          <p className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Experience</p>
+                          <p className="text-sm font-bold text-gray-900 dark:text-white mt-0.5">{selectedDoctor.experience} years</p>
                         </div>
                       </div>
                     )}
 
-                    <div className="flex items-center gap-2 p-1.5 bg-gradient-to-r from-gray-50 to-gray-100/50 rounded-md hover:shadow-sm transition-shadow">
-                      <div className="bg-primary-100 p-1 rounded-md">
-                        <BuildingOfficeIcon className="h-3.5 w-3.5 text-primary-600 flex-shrink-0" />
+                    <div className="flex items-center gap-3">
+                      <div className="bg-primary-100 dark:bg-primary-900/50 p-2 rounded-lg">
+                        <span className="material-symbols-outlined text-primary-600 dark:text-primary-400 text-lg">workspace_premium</span>
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-xs text-gray-600">Qualification</p>
-                        <p className="font-bold text-xs text-gray-900 truncate">{selectedDoctor.qualification}</p>
+                        <p className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Qualification</p>
+                        <p className="text-sm font-bold text-gray-900 dark:text-white truncate mt-0.5">{selectedDoctor.qualification}</p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 p-1.5 bg-gradient-to-r from-gray-50 to-gray-100/50 rounded-md hover:shadow-sm transition-shadow">
-                      <div className="bg-primary-100 p-1 rounded-md">
-                        <HeartIcon className="h-3.5 w-3.5 text-primary-600 flex-shrink-0" />
+                    <div className="flex items-center gap-3">
+                      <div className="bg-primary-100 dark:bg-primary-900/50 p-2 rounded-lg">
+                        <span className="material-symbols-outlined text-primary-600 dark:text-primary-400 text-lg">payments</span>
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs text-gray-600">Consultation Fee</p>
-                        <p className="font-bold text-xs text-gray-900">${selectedDoctor.consultationFee}</p>
+                      <div className="flex-1">
+                        <p className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Consultation Fee</p>
+                        <p className="text-sm font-bold text-gray-900 dark:text-white mt-0.5">${selectedDoctor.consultationFee}</p>
                       </div>
                     </div>
 
                     {selectedClinic && (
-                      <div className="flex items-center gap-2 p-1.5 bg-gradient-to-r from-gray-50 to-gray-100/50 rounded-md hover:shadow-sm transition-shadow">
-                        <div className="bg-primary-100 p-1 rounded-md">
-                          <MapPinIcon className="h-3.5 w-3.5 text-primary-600 flex-shrink-0" />
+                      <div className="flex items-center gap-3">
+                        <div className="bg-primary-100 dark:bg-primary-900/50 p-2 rounded-lg">
+                          <span className="material-symbols-outlined text-primary-600 dark:text-primary-400 text-lg">location_on</span>
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-xs text-gray-600">Clinic Location</p>
-                          <p className="font-bold text-xs text-gray-900 truncate">{selectedClinic.locationName}</p>
-                          <p className="text-xs text-gray-600 truncate">{selectedClinic.address}, {selectedClinic.city}</p>
+                          <p className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Clinic Location</p>
+                          <p className="text-sm font-bold text-gray-900 dark:text-white truncate mt-0.5">{selectedClinic.locationName}</p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400 truncate mt-0.5">{selectedClinic.address}, {selectedClinic.city}</p>
                         </div>
                       </div>
                     )}
 
                     {selectedDoctor.bio && (
-                      <div className="p-2 bg-gradient-to-br from-primary-50 to-secondary-50 rounded-md border border-primary-100">
-                        <p className="text-xs font-semibold text-primary-900 mb-1">About Doctor</p>
-                        <p className="text-xs text-gray-700 leading-relaxed line-clamp-3">{selectedDoctor.bio}</p>
+                      <div className="pt-2">
+                        <p className="text-xs font-bold text-primary-900 dark:text-primary-300 mb-1.5 flex items-center gap-1.5">
+                          <span className="material-symbols-outlined text-sm">info</span>
+                          About Doctor
+                        </p>
+                        <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">{selectedDoctor.bio}</p>
                       </div>
                     )}
                   </div>
                 </div>
               ) : filteredPatients.length === 0 && !isLoading ? (
-                <div className="p-6 text-center">
-                  <UserCircleIcon className="h-10 w-10 text-gray-400 mx-auto mb-2" />
-                  <p className="text-xs text-gray-600 font-semibold">No doctor information available</p>
-                  <p className="text-xs text-gray-500 mt-1">Please select location and date to view doctor details</p>
+                <div className="p-8 text-center">
+                  <span className="material-symbols-outlined text-5xl text-gray-400 dark:text-gray-500 mb-3 block">person_off</span>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 font-semibold">No doctor information available</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Please select location and date to view doctor details</p>
                 </div>
               ) : null}
             </div>
 
-            {/* Right Side - Patient List (65% width) */}
-            <div className="lg:col-span-3 bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
-              <div className="bg-gradient-to-br from-secondary-600 via-secondary-700 to-primary-600 p-3 text-white relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent"></div>
-                <div className="relative">
-                  <h2 className="text-base font-bold mb-0.5 flex items-center gap-2">
-                    <div className="bg-white/20 backdrop-blur-sm p-1 rounded-lg">
-                      <UsersIcon className="h-4 w-4" />
-                    </div>
-                    Patient List
-                  </h2>
-                  <p className="text-xs text-white/90">
-                    {filteredPatients.length} Patient{filteredPatients.length !== 1 ? 's' : ''} Found
-                  </p>
-                </div>
-              </div>
-
+            {/* Right Side - Patient List */}
+            <div className="lg:col-span-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm overflow-hidden">
               {isLoading ? (
-                <div className="p-6 text-center">
+                <div className="p-8 text-center">
                   <LoadingSpinner size="md" />
-                  <p className="text-xs text-gray-600 mt-2">Loading patients...</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-3">Loading patients...</p>
                 </div>
               ) : filteredPatients.length === 0 ? (
-                <div className="p-6 text-center">
-                  <UsersIcon className="h-10 w-10 text-gray-400 mx-auto mb-2" />
-                  <p className="text-xs text-gray-600 font-semibold mb-1">No patients found</p>
-                  <p className="text-xs text-gray-500">
+                <div className="p-8 text-center">
+                  <span className="material-symbols-outlined text-5xl text-gray-400 dark:text-gray-500 mb-3 block">person_off</span>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 font-semibold mb-1">No patients found</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-500">
                     {selectedLocation && selectedDate 
                       ? 'No patients scheduled for the selected location and date'
                       : 'Please select location and date to view patients'
@@ -431,74 +512,70 @@ const PatientsViewPage: React.FC = () => {
                   </p>
                 </div>
               ) : (
-                <div className="divide-y divide-gray-100 max-h-[calc(100vh-250px)] overflow-y-auto">
-                  {filteredPatients.map((patient, index) => (
-                    <motion.div
+                <div className="p-4 max-h-[calc(100vh-350px)] overflow-y-auto space-y-3">
+                  {filteredPatients.map((patient) => (
+                    <div
                       key={patient.id}
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.03 }}
-                      className="p-2.5 hover:bg-gradient-to-r hover:from-gray-50 hover:to-primary-50/30 transition-all group"
+                      className="p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-md hover:border-primary-300 dark:hover:border-primary-700 transition-all cursor-pointer"
+                      onClick={() => {
+                        setSelectedPatient(patient);
+                        setShowPatientDetails(true);
+                      }}
                     >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-start space-x-2.5 flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-start space-x-3 flex-1 min-w-0">
                           {/* Patient Avatar */}
-                          <div className="w-9 h-9 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md flex-shrink-0 group-hover:scale-110 transition-transform">
-                            {patient.patientName.charAt(0).toUpperCase()}
+                          <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-full flex items-center justify-center text-white font-bold text-base shadow-md flex-shrink-0">
+                            {patient.patientName?.charAt(0).toUpperCase() || '?'}
                           </div>
 
                           {/* Patient Info */}
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h3 className="text-sm font-bold text-gray-900 truncate">{patient.patientName}</h3>
-                              <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold flex-shrink-0 border ${
-                                patient.status === 'Confirmed' ? 'bg-green-50 text-green-700 border-green-200' :
-                                patient.status === 'Pending' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
-                                patient.status === 'Completed' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                                'bg-red-50 text-red-700 border-red-200'
-                              }`}>
+                            <div className="flex items-center gap-2 mb-2">
+                              <h3 className="text-base font-bold text-gray-900 dark:text-white truncate">{patient.patientName || 'Unknown'}</h3>
+                              <span className={`px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0 ${getStatusBadgeClass(patient.status)}`}>
                                 {patient.status}
                               </span>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 text-xs">
-                              <div className="flex items-center gap-1 text-gray-600">
-                                <UserCircleIcon className="h-3 w-3 text-primary-600 flex-shrink-0" />
-                                <span className="font-semibold">Age:</span>
-                                <span>{patient.patientAge} yrs</span>
+                            <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs mb-2">
+                              <div className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400">
+                                <span className="material-symbols-outlined text-sm text-primary-600 dark:text-primary-400">person</span>
+                                <span className="font-medium">Age:</span>
+                                <span>{patient.patientAge || 'N/A'} yrs</span>
                               </div>
-                              <div className="flex items-center gap-1 text-gray-600">
-                                <HeartIcon className="h-3 w-3 text-primary-600 flex-shrink-0" />
-                                <span className="font-semibold">Gender:</span>
-                                <span>{patient.patientGender}</span>
+                              <div className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400">
+                                <span className="material-symbols-outlined text-sm text-primary-600 dark:text-primary-400">favorite</span>
+                                <span className="font-medium">Gender:</span>
+                                <span>{patient.patientGender || 'N/A'}</span>
                               </div>
-                              <div className="flex items-center gap-1 text-gray-600">
-                                <PhoneIcon className="h-3 w-3 text-primary-600 flex-shrink-0" />
-                                <span className="font-semibold">Phone:</span>
-                                <span className="truncate">{patient.patientPhone}</span>
+                              <div className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400">
+                                <span className="material-symbols-outlined text-sm text-primary-600 dark:text-primary-400">phone</span>
+                                <span className="font-medium">Phone:</span>
+                                <span className="truncate">{patient.patientPhone || 'N/A'}</span>
                               </div>
-                              <div className="flex items-center gap-1 text-gray-600">
-                                <EnvelopeIcon className="h-3 w-3 text-primary-600 flex-shrink-0" />
-                                <span className="font-semibold">Email:</span>
-                                <span className="truncate">{patient.patientEmail}</span>
+                              <div className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400">
+                                <span className="material-symbols-outlined text-sm text-primary-600 dark:text-primary-400">email</span>
+                                <span className="font-medium">Email:</span>
+                                <span className="truncate">{patient.patientEmail || 'N/A'}</span>
                               </div>
                             </div>
 
                             {/* Token and Time */}
-                            <div className="mt-1.5 flex items-center gap-2 text-xs">
-                              <div className="flex items-center gap-1 bg-gradient-to-r from-primary-50 to-secondary-50 px-2 py-0.5 rounded-md border border-primary-100">
-                                <ClockIcon className="h-3 w-3 text-primary-600" />
-                                <span className="font-semibold text-gray-700">Token:</span>
-                                <span className="font-bold text-primary-600">{patient.tokenNumber}</span>
+                            <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-1.5 bg-primary-50 dark:bg-primary-900/20 px-2 py-1 rounded-md border border-primary-200 dark:border-primary-800">
+                                <span className="material-symbols-outlined text-xs text-primary-600 dark:text-primary-400">confirmation_number</span>
+                                <span className="font-semibold text-gray-700 dark:text-gray-300 text-xs">Token:</span>
+                                <span className="font-bold text-primary-600 dark:text-primary-400 text-xs">#{patient.tokenNumber}</span>
                               </div>
-                              <div className="flex items-center gap-1 text-gray-600 bg-gray-50 px-2 py-0.5 rounded-md">
-                                <CalendarIcon className="h-3 w-3" />
-                                <span className="font-semibold">{formatTimeTo12Hour(patient.time || '')}</span>
+                              <div className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 px-2 py-1 rounded-md">
+                                <span className="material-symbols-outlined text-xs">schedule</span>
+                                <span className="font-semibold text-xs">{formatTimeTo12Hour(patient.time || '')}</span>
                               </div>
                             </div>
 
                             {patient.reasonForVisit && (
-                              <div className="mt-1 p-1.5 bg-gray-50 rounded text-xs text-gray-600 border border-gray-100">
+                              <div className="mt-2 p-2 bg-gray-50 dark:bg-gray-800 rounded text-xs text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700">
                                 <span className="font-semibold">Reason:</span> {patient.reasonForVisit}
                               </div>
                             )}
@@ -506,46 +583,141 @@ const PatientsViewPage: React.FC = () => {
                         </div>
 
                         <button
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             navigate(`/patients/live?location=${selectedLocation}&date=${selectedDate}&doctor=${selectedDoctorFilter}&patientId=${patient.id}`);
                           }}
-                          className="p-1.5 hover:bg-primary-100 rounded-lg transition-all group/btn"
+                          className="p-2 hover:bg-primary-100 dark:hover:bg-primary-900/20 rounded-lg transition-all flex-shrink-0"
                         >
-                          <ArrowRightIcon className="h-4 w-4 text-gray-400 group-hover/btn:text-primary-600 flex-shrink-0 transition-colors" />
+                          <span className="material-symbols-outlined text-gray-400 dark:text-gray-500 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">arrow_forward</span>
                         </button>
                       </div>
-                    </motion.div>
+                    </div>
                   ))}
                 </div>
               )}
             </div>
-          </motion.div>
-        )}
-
-        {/* Empty State */}
-        {(!selectedLocation || !selectedDate) && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="bg-white rounded-lg shadow-sm p-6 text-center border border-gray-100"
-          >
-            <div className="bg-gradient-to-br from-primary-50 to-secondary-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-3">
-              <CalendarIcon className="h-10 w-10 text-primary-600" />
+          </div>
+        ) : (
+          /* Empty State */
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-8 sm:p-12 text-center">
+            <div className="bg-gradient-to-br from-primary-50 to-secondary-50 dark:from-primary-900/20 dark:to-secondary-900/20 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="material-symbols-outlined text-4xl text-primary-600 dark:text-primary-400">calendar_month</span>
             </div>
-            <h3 className="text-base font-bold text-gray-900 mb-1">Select Location & Date</h3>
-            <p className="text-xs text-gray-600 mb-3">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Select Location & Date</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
               Please select a location and date from the filters above to view patients
             </p>
-            <div className="flex items-center justify-center gap-1.5 text-xs text-gray-500 bg-gray-50 px-3 py-1.5 rounded-md inline-flex">
-              <CheckCircleIcon className="h-3.5 w-3.5 text-primary-600" />
+            <div className="flex items-center justify-center gap-1.5 text-xs text-gray-500 dark:text-gray-500 bg-gray-50 dark:bg-gray-800 px-4 py-2 rounded-md inline-flex">
+              <span className="material-symbols-outlined text-sm text-primary-600 dark:text-primary-400">info</span>
               <span>Filter by location and date to see patient appointments</span>
             </div>
-          </motion.div>
+          </div>
         )}
       </div>
+
+      {/* Calendar Modal */}
+      <Modal
+        isOpen={showCalendarModal}
+        onClose={() => setShowCalendarModal(false)}
+        title="Select Date"
+        size="md"
+      >
+        <Calendar
+          appointments={[]}
+          onDateSelect={handleCalendarDateSelect}
+          selectedDate={selectedCalendarDate}
+        />
+      </Modal>
+
+      {/* Patient Details Modal */}
+      <Modal
+        isOpen={showPatientDetails}
+        onClose={() => {
+          setShowPatientDetails(false);
+          setSelectedPatient(null);
+        }}
+        title="Patient Details"
+        size="md"
+      >
+        {selectedPatient && (
+          <div className="space-y-4">
+            <div className="bg-gradient-to-br from-primary-50 to-secondary-50 dark:from-primary-900/20 dark:to-secondary-900/20 p-4 rounded-lg border border-primary-100 dark:border-primary-800">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="material-symbols-outlined text-primary-600 dark:text-primary-400">person</span>
+                <h3 className="text-base font-bold text-gray-900 dark:text-white">Patient Information</h3>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="bg-white dark:bg-gray-800 p-3 rounded-lg">
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-0.5">Name</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedPatient.patientName || 'N/A'}</p>
+                </div>
+                <div className="bg-white dark:bg-gray-800 p-3 rounded-lg">
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-0.5">Age</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedPatient.patientAge || 'N/A'} years</p>
+                </div>
+                <div className="bg-white dark:bg-gray-800 p-3 rounded-lg">
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-0.5">Gender</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedPatient.patientGender || 'N/A'}</p>
+                </div>
+                <div className="bg-white dark:bg-gray-800 p-3 rounded-lg">
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-0.5">Phone</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedPatient.patientPhone || 'N/A'}</p>
+                </div>
+                <div className="col-span-2 bg-white dark:bg-gray-800 p-3 rounded-lg">
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-0.5">Email</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{selectedPatient.patientEmail || 'N/A'}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 p-4 rounded-lg border border-blue-100 dark:border-blue-800">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="material-symbols-outlined text-blue-600 dark:text-blue-400">event</span>
+                <h3 className="text-base font-bold text-gray-900 dark:text-white">Appointment Details</h3>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="bg-white dark:bg-gray-800 p-3 rounded-lg">
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-0.5">Token Number</p>
+                  <p className="text-sm font-bold text-primary-600 dark:text-primary-400">#{selectedPatient.tokenNumber}</p>
+                </div>
+                <div className="bg-white dark:bg-gray-800 p-3 rounded-lg">
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-0.5">Status</p>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${getStatusBadgeClass(selectedPatient.status)}`}>
+                    {selectedPatient.status}
+                  </span>
+                </div>
+                <div className="bg-white dark:bg-gray-800 p-3 rounded-lg">
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-0.5">Date</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                    {format(new Date(selectedPatient.date), 'MMM dd, yyyy')}
+                  </p>
+                </div>
+                <div className="bg-white dark:bg-gray-800 p-3 rounded-lg">
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-0.5">Time</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                    {selectedPatient.time ? formatTimeTo12Hour(selectedPatient.time) : 'N/A'}
+                  </p>
+                </div>
+                <div className="bg-white dark:bg-gray-800 p-3 rounded-lg">
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-0.5">Doctor</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                    Dr. {selectedPatient.doctor?.name || 'N/A'}
+                  </p>
+                </div>
+                {selectedPatient.reasonForVisit && (
+                  <div className="col-span-2 bg-white dark:bg-gray-800 p-3 rounded-lg">
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-0.5">Reason for Visit</p>
+                    <p className="text-sm text-gray-900 dark:text-white">{selectedPatient.reasonForVisit}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };
 
 export default PatientsViewPage;
-

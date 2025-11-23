@@ -33,7 +33,7 @@ const formatTimeTo12Hour = (time24: string): string => {
 const PatientsViewPage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { isAssistant } = useAuth();
+  const { isAssistant, isDoctor } = useAuth();
   const { isLoading } = useAppSelector(state => state.appointments);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { clinics } = useAppSelector(state => state.clinics);
@@ -211,7 +211,15 @@ const PatientsViewPage: React.FC = () => {
                 <p className="text-gray-500 dark:text-gray-400 text-base font-normal leading-normal">Search and manage patient records.</p>
               </div>
               <button 
-                onClick={() => navigate('/patients')}
+                onClick={() => {
+                  if (isAssistant) {
+                    navigate('/assistants/booking');
+                  } else if (isDoctor) {
+                    navigate('/doctors/booking');
+                  } else {
+                    navigate('/register');
+                  }
+                }}
                 className="flex items-center justify-center gap-2 rounded-lg h-11 px-5 bg-primary text-white text-sm font-bold leading-normal shadow-sm hover:bg-primary/90"
               >
                 <span className="material-symbols-outlined">person_add</span>

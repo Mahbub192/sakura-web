@@ -36,6 +36,7 @@ import './index.css';
 import AdminUsersPage from './pages/admin/AdminUsersPage';
 import AssistantsPage from './pages/assistants/AssistantsPage';
 import AssistantBookingPage from './pages/assistants/AssistantBookingPage';
+import DoctorBookingPage from './pages/doctors/DoctorBookingPage';
 import ClinicsPage from './pages/clinics/ClinicsPage';
 import GlobalDashboardPage from './pages/admin/GlobalDashboardPage';
 
@@ -152,6 +153,12 @@ const AppContent: React.FC = () => {
         <Route path="/assistants/booking" element={
           <ProtectedRoute allowedRoles={['Assistant']}>
             <DashboardLayout><AssistantBookingPage /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/doctors/booking" element={
+          <ProtectedRoute allowedRoles={['Doctor']}>
+            <DashboardLayout><DoctorBookingPage /></DashboardLayout>
           </ProtectedRoute>
         } />
         

@@ -4,13 +4,7 @@ import { format } from 'date-fns';
 import { 
   CalendarIcon,
   ClockIcon,
-  UserCircleIcon,
-  PhoneIcon,
-  EnvelopeIcon,
-  MapPinIcon,
-  HeartIcon,
   BuildingOfficeIcon,
-  MagnifyingGlassIcon,
   CheckCircleIcon,
   UsersIcon,
   AcademicCapIcon,
@@ -71,11 +65,11 @@ const calculatePatientSlotTime = (startTime: string, endTime: string, slotIndex:
   return minutesToTime(slotTimeMinutes);
 };
 
-const AssistantBookingPage: React.FC = () => {
+const DoctorBookingPage: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { isAssistant, user } = useAuth();
+  const { isDoctor, user } = useAuth();
   
-  console.log('[AssistantBookingPage] Component rendered, isAssistant:', isAssistant, 'user:', user);
+  console.log('[DoctorBookingPage] Component rendered, isDoctor:', isDoctor, 'user:', user);
   const { clinics } = useAppSelector(state => state.clinics);
   const { currentDoctorProfile } = useAppSelector(state => state.doctors);
   const { availableSlots, isLoading: slotsLoading } = useAppSelector(state => state.appointments);
@@ -105,11 +99,11 @@ const AssistantBookingPage: React.FC = () => {
   });
 
   useEffect(() => {
-    if (isAssistant) {
+    if (isDoctor) {
       dispatch(fetchCurrentDoctorProfile());
       dispatch(fetchClinics());
     }
-  }, [dispatch, isAssistant]);
+  }, [dispatch, isDoctor]);
 
   useEffect(() => {
     if (currentDoctorProfile && selectedDate && selectedClinic) {
@@ -207,9 +201,9 @@ const AssistantBookingPage: React.FC = () => {
         notes: bookingData.notes?.trim() || undefined,
       };
       
-      console.log('[AssistantBookingPage] Calling assistantBookingService.bookPatient with:', requestData);
+      console.log('[DoctorBookingPage] Calling assistantBookingService.bookPatient with:', requestData);
       const result = await assistantBookingService.bookPatient(requestData);
-      console.log('[AssistantBookingPage] Booking successful, result:', result);
+      console.log('[DoctorBookingPage] Booking successful, result:', result);
       toast.success('Appointment booked successfully!');
       setShowBookingModal(false);
       setSelectedSlot(null);
@@ -316,12 +310,12 @@ const AssistantBookingPage: React.FC = () => {
     return cards;
   });
 
-  if (!isAssistant) {
+  if (!isDoctor) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
-          <p className="text-gray-600">Only assistants can book appointments for patients.</p>
+          <p className="text-gray-600">Only doctors can book appointments for patients.</p>
         </div>
       </div>
     );
@@ -679,5 +673,5 @@ const AssistantBookingPage: React.FC = () => {
   );
 };
 
-export default AssistantBookingPage;
+export default DoctorBookingPage;
 

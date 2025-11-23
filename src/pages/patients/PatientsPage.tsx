@@ -406,7 +406,7 @@ const PatientsPage: React.FC = () => {
         </div>
 
       {/* Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-6">
+        {/* <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-6">
           <div className="lg:col-span-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4 sm:p-6 rounded-lg">
             <h3 className="font-semibold text-gray-900 dark:text-white mb-4 text-sm sm:text-base">
               {dateFilter 
@@ -474,7 +474,7 @@ const PatientsPage: React.FC = () => {
             </ResponsiveContainer>
             </div>
             </div>
-        </div>
+        </div> */}
 
         {/* Filters & Search */}
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-3 sm:p-4 rounded-lg mb-6">

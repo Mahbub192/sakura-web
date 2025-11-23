@@ -10,7 +10,7 @@ import Modal from '../../components/ui/Modal';
 import Calendar from '../../components/ui/Calendar';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { toast } from 'react-toastify';
-import { TokenAppointment, Doctor } from '../../types';
+import { TokenAppointment } from '../../types';
 
 // Helper function to convert 24-hour time to 12-hour AM/PM format
 const formatTimeTo12Hour = (time24: string): string => {
@@ -35,7 +35,9 @@ const PatientsViewPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const { isAssistant } = useAuth();
   const { isLoading } = useAppSelector(state => state.appointments);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { clinics } = useAppSelector(state => state.clinics);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { doctors, currentDoctorProfile } = useAppSelector(state => state.doctors);
   
   const [showCalendarModal, setShowCalendarModal] = useState(false);
@@ -44,10 +46,13 @@ const PatientsViewPage: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedDoctorFilter, setSelectedDoctorFilter] = useState<number | ''>('');
   const [filteredPatients, setFilteredPatients] = useState<TokenAppointment[]>([]);
-  const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const [selectedPatient, setSelectedPatient] = useState<TokenAppointment | null>(null);
   const [showPatientDetails, setShowPatientDetails] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(5);
+  const [showSidebar, setShowSidebar] = useState(false);
 
   useEffect(() => {
     if (isAssistant) {
@@ -60,7 +65,6 @@ const PatientsViewPage: React.FC = () => {
   useEffect(() => {
     if (isAssistant && currentDoctorProfile) {
       setSelectedDoctorFilter(currentDoctorProfile.id);
-      setSelectedDoctor(currentDoctorProfile);
     }
   }, [isAssistant, currentDoctorProfile]);
 
@@ -69,7 +73,6 @@ const PatientsViewPage: React.FC = () => {
       handleFilter();
     } else {
       setFilteredPatients([]);
-      setSelectedDoctor(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedLocation, selectedDate, selectedDoctorFilter]);
@@ -81,7 +84,6 @@ const PatientsViewPage: React.FC = () => {
     }
 
     try {
-      setRefreshing(true);
       const doctorIdToUse = isAssistant && currentDoctorProfile 
         ? currentDoctorProfile.id 
         : (selectedDoctorFilter ? Number(selectedDoctorFilter) : undefined);
@@ -93,62 +95,91 @@ const PatientsViewPage: React.FC = () => {
       })).unwrap();
       
       setFilteredPatients(result);
-      
-      if (isAssistant && currentDoctorProfile) {
-        setSelectedDoctor(currentDoctorProfile);
-      } else if (selectedDoctorFilter) {
-        const doctor = doctors.find(d => d.id === Number(selectedDoctorFilter));
-        setSelectedDoctor(doctor || null);
-      } else if (result.length > 0 && result[0].doctor) {
-        setSelectedDoctor(result[0].doctor);
-      } else {
-        setSelectedDoctor(null);
-      }
     } catch (error: any) {
       console.error('Failed to fetch patients:', error);
       const errorMessage = error?.response?.data?.message || error?.message || 'Failed to load patients';
       toast.error(errorMessage);
       setFilteredPatients([]);
-      setSelectedDoctor(null);
-    } finally {
-      setRefreshing(false);
     }
   };
 
-  const selectedClinic = clinics.find(c => c.id === Number(selectedLocation));
-
-  // Calculate stats
-  const statsData = useMemo(() => {
-    const totalPatients = filteredPatients.length;
-    const confirmed = filteredPatients.filter(p => p.status === 'Confirmed').length;
-    const pending = filteredPatients.filter(p => p.status === 'Pending').length;
-    const completed = filteredPatients.filter(p => p.status === 'Completed').length;
-    const cancelled = filteredPatients.filter(p => p.status === 'Cancelled').length;
-
-    return {
-      totalPatients,
-      confirmed,
-      pending,
-      completed,
-      cancelled,
-    };
-  }, [filteredPatients]);
-
-  const { totalPatients, confirmed, pending, completed, cancelled } = statsData;
 
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
       case 'Confirmed':
-        return 'text-green-600 dark:text-green-500 bg-green-100 dark:bg-green-900/50';
+        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
       case 'Pending':
-        return 'text-yellow-600 dark:text-yellow-500 bg-yellow-100 dark:bg-yellow-900/50';
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
       case 'Completed':
-        return 'text-blue-600 dark:text-blue-500 bg-blue-100 dark:bg-blue-900/50';
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
       case 'Cancelled':
-        return 'text-red-600 dark:text-red-500 bg-red-100 dark:bg-red-900/50';
+        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
       default:
-        return 'text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800';
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
     }
+  };
+
+  // Filter patients by search query, status, and location
+  const searchedPatients = useMemo(() => {
+    let filtered = filteredPatients;
+    
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(patient => 
+        patient.patientName?.toLowerCase().includes(query) ||
+        patient.patientPhone?.includes(query) ||
+        patient.patientEmail?.toLowerCase().includes(query) ||
+        patient.tokenNumber?.toLowerCase().includes(query) ||
+        patient.reasonForVisit?.toLowerCase().includes(query)
+      );
+    }
+    
+    // Filter by status
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(patient => patient.status === statusFilter);
+    }
+    
+    // Filter by location (already filtered in handleFilter via API call)
+    
+    return filtered;
+  }, [filteredPatients, searchQuery, statusFilter, selectedLocation]);
+
+  // Pagination
+  const totalPages = Math.ceil(searchedPatients.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedPatients = searchedPatients.slice(startIndex, endIndex);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter, selectedLocation, filteredPatients.length]);
+
+  const handleExport = () => {
+    const csvContent = [
+      ['Patient Name', 'ID', 'Last Visit', 'Diagnosis', 'Status', 'Phone', 'Email', 'Gender'].join(','),
+      ...searchedPatients.map(patient => [
+        patient.patientName || 'N/A',
+        patient.tokenNumber || 'N/A',
+        selectedDate ? format(new Date(selectedDate), 'MMM dd, yyyy') : 'N/A',
+        patient.reasonForVisit || 'N/A',
+        patient.status || 'N/A',
+        patient.patientPhone || 'N/A',
+        patient.patientEmail || 'N/A',
+        patient.patientGender || 'N/A'
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `patients_${selectedDate || 'all'}_${new Date().getTime()}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('Patients data exported successfully');
   };
 
   const handleCalendarDateSelect = (date: Date) => {
@@ -168,436 +199,315 @@ const PatientsViewPage: React.FC = () => {
   }, [selectedDate]);
 
   return (
-    <div className="font-display bg-background-light dark:bg-background-dark text-gray-800 dark:text-gray-200 w-full">
-      <div className="w-full">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="flex items-center justify-center size-8 rounded-full bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            >
-              <span className="material-symbols-outlined text-xl">arrow_back</span>
-            </button>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Patient Management</h1>
-              <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">View patients by location, date and doctor</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <button
-              onClick={handleFilter}
-              disabled={refreshing || !selectedLocation || !selectedDate}
-              className="flex items-center justify-center gap-1 sm:gap-2 rounded-lg h-10 px-2 sm:px-4 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-semibold leading-normal border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
-            >
-              <span className="material-symbols-outlined text-xl">refresh</span>
-              <span className="hidden sm:inline">Refresh</span>
-            </button>
-            <button
-              onClick={() => setShowCalendarModal(true)}
-              className="flex items-center justify-center gap-1 sm:gap-2 rounded-lg h-10 px-2 sm:px-4 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-semibold leading-normal border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
-            >
-              <span className="material-symbols-outlined text-xl">calendar_month</span>
-              <span className="hidden sm:inline">Calendar</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Stats Cards */}
-        {selectedLocation && selectedDate && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6 mb-6">
-            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4 rounded-lg flex items-center gap-4">
-              <div className="bg-blue-100 dark:bg-blue-900/50 p-3 rounded-full">
-                <span className="material-symbols-outlined text-blue-600 dark:text-blue-400">people</span>
+    <div className="font-display bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 w-full min-h-screen">
+      <div className="flex h-screen w-full">
+        {/* Main Content */}
+        <main className="flex-1 overflow-y-auto p-8 bg-white dark:bg-gray-900">
+          <div className="flex flex-col gap-6">
+            {/* Header */}
+            <div className="flex flex-wrap justify-between items-center gap-4">
+              <div className="flex flex-col gap-1">
+                <h1 className="text-gray-900 dark:text-white text-3xl font-bold leading-tight">Patient History</h1>
+                <p className="text-gray-500 dark:text-gray-400 text-base font-normal leading-normal">Search and manage patient records.</p>
               </div>
-              <div>
-                <p className="text-gray-500 dark:text-gray-400 text-sm">Total Patients</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalPatients}</p>
-              </div>
-            </div>
-            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4 rounded-lg flex items-center gap-4">
-              <div className="bg-green-100 dark:bg-green-900/50 p-3 rounded-full">
-                <span className="material-symbols-outlined text-green-600 dark:text-green-400">check_circle</span>
-              </div>
-              <div>
-                <p className="text-gray-500 dark:text-gray-400 text-sm">Confirmed</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{confirmed}</p>
-              </div>
-            </div>
-            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4 rounded-lg flex items-center gap-4">
-              <div className="bg-yellow-100 dark:bg-yellow-900/50 p-3 rounded-full">
-                <span className="material-symbols-outlined text-yellow-600 dark:text-yellow-400">schedule</span>
-              </div>
-              <div>
-                <p className="text-gray-500 dark:text-gray-400 text-sm">Pending</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{pending}</p>
-              </div>
-            </div>
-            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4 rounded-lg flex items-center gap-4">
-              <div className="bg-indigo-100 dark:bg-indigo-900/50 p-3 rounded-full">
-                <span className="material-symbols-outlined text-indigo-600 dark:text-indigo-400">done_all</span>
-              </div>
-              <div>
-                <p className="text-gray-500 dark:text-gray-400 text-sm">Completed</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{completed}</p>
-              </div>
-            </div>
-            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4 rounded-lg flex items-center gap-4">
-              <div className="bg-red-100 dark:bg-red-900/50 p-3 rounded-full">
-                <span className="material-symbols-outlined text-red-600 dark:text-red-400">cancel</span>
-              </div>
-              <div>
-                <p className="text-gray-500 dark:text-gray-400 text-sm">Cancelled</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{cancelled}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Filters Section */}
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-3 sm:p-4 rounded-lg mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 mb-4">
-            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Filters</h3>
-            {(selectedLocation || selectedDate || selectedDoctorFilter) && (
-              <button
-                onClick={() => {
-                  setSelectedLocation('');
-                  setSelectedDate('');
-                  setSelectedDoctorFilter('');
-                  setFilteredPatients([]);
-                  setSelectedDoctor(null);
-                }}
-                className="flex items-center justify-center gap-1 sm:gap-2 rounded-lg h-8 px-2 sm:px-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs sm:text-sm font-medium border border-gray-300 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700"
+              <button 
+                onClick={() => navigate('/patients')}
+                className="flex items-center justify-center gap-2 rounded-lg h-11 px-5 bg-primary text-white text-sm font-bold leading-normal shadow-sm hover:bg-primary/90"
               >
-                <span className="material-symbols-outlined text-lg">close</span>
-                <span>Clear Filters</span>
-              </button>
-            )}
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            <div className="relative">
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                <span className="material-symbols-outlined text-sm align-middle mr-1">location_on</span>
-                Location
-              </label>
-              <select
-                value={selectedLocation}
-                onChange={(e) => setSelectedLocation(e.target.value ? Number(e.target.value) : '')}
-                className="w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 shadow-sm focus:border-primary focus:ring-primary px-3 py-2 text-sm"
-              >
-                <option value="">Choose location...</option>
-                {clinics.map((clinic) => (
-                  <option key={clinic.id} value={clinic.id}>
-                    {clinic.locationName} - {clinic.city}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="relative">
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                <span className="material-symbols-outlined text-sm align-middle mr-1">calendar_month</span>
-                Date
-              </label>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 shadow-sm focus:border-primary focus:ring-primary px-3 py-2 text-sm"
-                min={new Date().toISOString().split('T')[0]}
-              />
-            </div>
-
-            <div className="relative">
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                <span className="material-symbols-outlined text-sm align-middle mr-1">person</span>
-                Doctor
-              </label>
-              <select
-                value={isAssistant && currentDoctorProfile ? currentDoctorProfile.id : selectedDoctorFilter}
-                onChange={(e) => setSelectedDoctorFilter(e.target.value ? Number(e.target.value) : '')}
-                disabled={isAssistant}
-                className={`w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 shadow-sm focus:border-primary focus:ring-primary px-3 py-2 text-sm ${
-                  isAssistant ? 'bg-gray-100 dark:bg-gray-700 cursor-not-allowed opacity-60' : ''
-                }`}
-              >
-                <option value="">All Doctors</option>
-                {doctors.map((doctor) => (
-                  <option key={doctor.id} value={doctor.id}>
-                    Dr. {doctor.name}
-                  </option>
-                ))}
-              </select>
-              {isAssistant && currentDoctorProfile && (
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Showing patients for your assigned doctor</p>
-              )}
-            </div>
-
-            <div className="flex items-end">
-              <button
-                onClick={handleFilter}
-                disabled={!selectedLocation || !selectedDate || isLoading}
-                className="w-full flex items-center justify-center gap-2 rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal shadow-sm hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isLoading ? (
-                  <>
-                    <LoadingSpinner size="sm" />
-                    <span>Loading...</span>
-                  </>
-                ) : (
-                  <>
-                    <span className="material-symbols-outlined text-xl">search</span>
-                    <span>View Patients</span>
-                  </>
-                )}
+                <span className="material-symbols-outlined">person_add</span>
+                <span className="truncate">Add New Patient</span>
               </button>
             </div>
-          </div>
 
-          {/* Selected Filters Info */}
-          {(selectedLocation || selectedDate || selectedDoctorFilter) && (
-            <div className="mt-4 p-3 bg-gradient-to-r from-primary-50 to-secondary-50 dark:from-primary-900/20 dark:to-secondary-900/20 rounded-md border border-primary-200 dark:border-primary-800">
-              <div className="flex flex-wrap items-center gap-2 text-xs">
-                {selectedClinic && (
-                  <div className="flex items-center gap-1 bg-white dark:bg-gray-800 px-2 py-1 rounded-md shadow-sm">
-                    <span className="material-symbols-outlined text-sm text-primary-600 dark:text-primary-400">location_on</span>
-                    <span className="font-semibold text-gray-700 dark:text-gray-300">{selectedClinic.locationName}</span>
-                  </div>
-                )}
-                {selectedDate && (
-                  <div className="flex items-center gap-1 bg-white dark:bg-gray-800 px-2 py-1 rounded-md shadow-sm">
-                    <span className="material-symbols-outlined text-sm text-primary-600 dark:text-primary-400">calendar_month</span>
-                    <span className="font-semibold text-gray-700 dark:text-gray-300">
-                      {format(new Date(selectedDate), 'MMM dd, yyyy')}
-                    </span>
-                  </div>
-                )}
-                {(selectedDoctorFilter || (isAssistant && currentDoctorProfile)) && (
-                  <div className="flex items-center gap-1 bg-white dark:bg-gray-800 px-2 py-1 rounded-md shadow-sm">
-                    <span className="material-symbols-outlined text-sm text-primary-600 dark:text-primary-400">person</span>
-                    <span className="font-semibold text-gray-700 dark:text-gray-300">
-                      {isAssistant && currentDoctorProfile
-                        ? `Dr. ${currentDoctorProfile.name}`
-                        : doctors.find(d => d.id === Number(selectedDoctorFilter))?.name 
-                          ? `Dr. ${doctors.find(d => d.id === Number(selectedDoctorFilter))?.name}` 
-                          : 'Doctor'}
-                    </span>
-                  </div>
-                )}
-                {filteredPatients.length > 0 && (
-                  <div className="flex items-center gap-1 bg-gradient-to-r from-primary-600 to-secondary-600 text-white px-2 py-1 rounded-md shadow-sm ml-auto">
-                    <span className="material-symbols-outlined text-sm">people</span>
-                    <span className="font-bold">
-                      {filteredPatients.length} Patient{filteredPatients.length !== 1 ? 's' : ''}
-                    </span>
-                  </div>
-                )}
+            {/* Search and Filters */}
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-wrap items-center gap-3">
+                {/* Search Field - Smaller */}
+                <div className="relative w-full sm:w-auto sm:min-w-[250px]">
+                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">search</span>
+                  <input 
+                    className="w-full h-10 rounded-lg border border-gray-200 dark:border-gray-700 bg-background-light dark:bg-background-dark text-sm pl-9 pr-3 focus:border-primary focus:ring-primary/50 text-gray-900 dark:text-white"
+                    placeholder="Search..." 
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+                
+                {/* Status Filter */}
+                <select 
+                  className="rounded-lg border border-gray-200 dark:border-gray-700 bg-background-light dark:bg-background-dark text-sm focus:border-primary focus:ring-primary/50 h-10 px-3 text-gray-900 dark:text-white min-w-[120px]"
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                >
+                  <option value="all">All Status</option>
+                  <option value="Confirmed">Confirmed</option>
+                  <option value="Pending">Pending</option>
+                  <option value="Completed">Completed</option>
+                  <option value="Cancelled">Cancelled</option>
+                </select>
+                
+                {/* Location Filter */}
+                <select 
+                  className="rounded-lg border border-gray-200 dark:border-gray-700 bg-background-light dark:bg-background-dark text-sm focus:border-primary focus:ring-primary/50 h-10 px-3 text-gray-900 dark:text-white min-w-[150px]"
+                  value={selectedLocation}
+                  onChange={(e) => setSelectedLocation(e.target.value ? Number(e.target.value) : '')}
+                >
+                  <option value="">All Locations</option>
+                  {clinics.map((clinic) => (
+                    <option key={clinic.id} value={clinic.id}>
+                      {clinic.locationName}
+                    </option>
+                  ))}
+                </select>
+                
+                {/* Date Filter */}
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="rounded-lg border border-gray-200 dark:border-gray-700 bg-background-light dark:bg-background-dark text-sm focus:border-primary focus:ring-primary/50 h-10 px-3 text-gray-900 dark:text-white min-w-[150px]"
+                />
+                
+                {/* Export Button */}
+                <button 
+                  onClick={handleExport}
+                  disabled={searchedPatients.length === 0}
+                  className="flex items-center justify-center gap-2 rounded-lg h-10 px-4 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-semibold border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <span className="material-symbols-outlined text-lg">download</span>
+                  <span className="hidden sm:inline">Export</span>
+                </button>
               </div>
             </div>
-          )}
-        </div>
 
-        {/* Main Content - Split View */}
-        {selectedLocation && selectedDate ? (
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6">
-            {/* Left Side - Doctor Information */}
-            <div className="lg:col-span-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm overflow-hidden">
-              {isLoading ? (
-                <div className="p-8 text-center">
-                  <LoadingSpinner size="md" />
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-3">Loading doctor information...</p>
-                </div>
-              ) : selectedDoctor ? (
-                <div className="p-4 space-y-3">
-                  {/* Doctor Header */}
-                  <div className="flex items-center space-x-3 pb-3 border-b border-gray-200 dark:border-gray-700">
-                    <div className="w-14 h-14 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-full flex items-center justify-center">
-                      <span className="material-symbols-outlined text-white text-xl">person</span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-base font-bold text-gray-900 dark:text-white truncate">Dr. {selectedDoctor.name}</h3>
-                      <p className="text-primary-600 dark:text-primary-400 text-sm truncate mt-0.5">{selectedDoctor.specialization}</p>
-                    </div>
-                  </div>
-
-                  {/* Doctor Details - Simple Design */}
-                  <div className="space-y-2.5">
-                    {selectedDoctor.experience && (
-                      <div className="flex items-center gap-2.5">
-                        <div className="bg-primary-100 dark:bg-primary-900/50 p-1.5 rounded">
-                          <span className="material-symbols-outlined text-primary-600 dark:text-primary-400 text-base">school</span>
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">Experience</p>
-                          <p className="text-sm font-bold text-gray-900 dark:text-white">{selectedDoctor.experience} years</p>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="flex items-center gap-2.5">
-                      <div className="bg-primary-100 dark:bg-primary-900/50 p-1.5 rounded">
-                        <span className="material-symbols-outlined text-primary-600 dark:text-primary-400 text-base">workspace_premium</span>
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">Qualification</p>
-                        <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{selectedDoctor.qualification}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2.5">
-                      <div className="bg-primary-100 dark:bg-primary-900/50 p-1.5 rounded">
-                        <span className="material-symbols-outlined text-primary-600 dark:text-primary-400 text-base">payments</span>
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">Consultation Fee</p>
-                        <p className="text-sm font-bold text-gray-900 dark:text-white">${selectedDoctor.consultationFee}</p>
-                      </div>
-                    </div>
-
-                    {selectedClinic && (
-                      <div className="flex items-center gap-2.5">
-                        <div className="bg-primary-100 dark:bg-primary-900/50 p-1.5 rounded">
-                          <span className="material-symbols-outlined text-primary-600 dark:text-primary-400 text-base">location_on</span>
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">Clinic Location</p>
-                          <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{selectedClinic.locationName}</p>
-                          <p className="text-xs text-gray-600 dark:text-gray-400 truncate">{selectedClinic.address}, {selectedClinic.city}</p>
-                        </div>
-                      </div>
-                    )}
-
-                    {selectedDoctor.bio && (
-                      <div className="pt-1">
-                        <p className="text-xs font-medium text-primary-900 dark:text-primary-300 mb-1 flex items-center gap-1">
-                          <span className="material-symbols-outlined text-xs">info</span>
-                          About Doctor
-                        </p>
-                        <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">{selectedDoctor.bio}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ) : filteredPatients.length === 0 && !isLoading ? (
-                <div className="p-8 text-center">
-                  <span className="material-symbols-outlined text-5xl text-gray-400 dark:text-gray-500 mb-3 block">person_off</span>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 font-semibold">No doctor information available</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Please select location and date to view doctor details</p>
-                </div>
-              ) : null}
-            </div>
-
-            {/* Right Side - Patient List */}
-            <div className="lg:col-span-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm overflow-hidden">
-              {isLoading ? (
-                <div className="p-8 text-center">
-                  <LoadingSpinner size="md" />
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-3">Loading patients...</p>
-                </div>
-              ) : filteredPatients.length === 0 ? (
-                <div className="p-8 text-center">
-                  <span className="material-symbols-outlined text-5xl text-gray-400 dark:text-gray-500 mb-3 block">person_off</span>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 font-semibold mb-1">No patients found</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-500">
-                    {selectedLocation && selectedDate 
-                      ? 'No patients scheduled for the selected location and date'
-                      : 'Please select location and date to view patients'
-                    }
-                  </p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+            {/* Table */}
+            <div className="border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                  <thead className="text-xs text-gray-700 uppercase bg-background-light dark:bg-background-dark dark:text-gray-300">
+                    <tr>
+                      <th className="px-6 py-3" scope="col">Patient</th>
+                      <th className="px-6 py-3" scope="col">Last Visit</th>
+                      <th className="px-6 py-3" scope="col">Diagnosis</th>
+                      <th className="px-6 py-3" scope="col">Status</th>
+                      <th className="px-6 py-3" scope="col"><span className="sr-only">Actions</span></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {isLoading ? (
                       <tr>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">SI No.</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Name</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Phone Number</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Gender</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Time</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Actions</th>
+                        <td colSpan={5} className="px-6 py-8 text-center">
+                          <LoadingSpinner size="md" />
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-3">Loading patients...</p>
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-                      {filteredPatients.map((patient, index) => (
-                        <tr
+                    ) : paginatedPatients.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="px-6 py-8 text-center">
+                          <span className="material-symbols-outlined text-5xl text-gray-400 dark:text-gray-500 mb-3 block">person_off</span>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 font-semibold mb-1">No patients found</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-500">
+                            {selectedLocation && selectedDate 
+                              ? 'No patients scheduled for the selected location and date'
+                              : 'Please select location and date to view patients'
+                            }
+                          </p>
+                        </td>
+                      </tr>
+                    ) : (
+                      paginatedPatients.map((patient) => (
+                        <tr 
                           key={patient.id}
-                          className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                          className="bg-white dark:bg-gray-900 border-b dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer"
                           onClick={() => {
                             setSelectedPatient(patient);
-                            setShowPatientDetails(true);
+                            setShowSidebar(true);
                           }}
                         >
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <span className="text-sm font-semibold text-gray-900 dark:text-white">{index + 1}</span>
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
+                          <th className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white" scope="row">
                             <div className="flex items-center gap-3">
                               <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md flex-shrink-0">
                                 {patient.patientName?.charAt(0).toUpperCase() || '?'}
                               </div>
                               <div>
-                                <div className="text-sm font-bold text-gray-900 dark:text-white">
-                                  {patient.patientName || 'Unknown'}
-                                </div>
-                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold mt-1 ${getStatusBadgeClass(patient.status)}`}>
-                                  {patient.status}
-                                </span>
+                                <p className="font-semibold">{patient.patientName || 'Unknown'}</p>
+                                <p className="font-normal text-gray-500 dark:text-gray-400 text-xs">ID: {patient.tokenNumber || 'N/A'}</p>
                               </div>
                             </div>
+                          </th>
+                          <td className="px-6 py-4">{selectedDate ? format(new Date(selectedDate), 'MMM dd, yyyy') : 'N/A'}</td>
+                          <td className="px-6 py-4">{patient.reasonForVisit || 'N/A'}</td>
+                          <td className="px-6 py-4">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeClass(patient.status)}`}>
+                              {patient.status}
+                            </span>
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <div className="flex items-center gap-1.5 text-sm text-gray-900 dark:text-white">
-                              <span className="material-symbols-outlined text-sm text-primary-600 dark:text-primary-400">phone</span>
-                              <span>{patient.patientPhone || 'N/A'}</span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <div className="flex items-center gap-1.5 text-sm text-gray-900 dark:text-white">
-                              <span className="material-symbols-outlined text-sm text-primary-600 dark:text-primary-400">favorite</span>
-                              <span>{patient.patientGender || 'N/A'}</span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <div className="flex items-center gap-1.5 text-sm text-gray-900 dark:text-white">
-                              <span className="material-symbols-outlined text-sm text-primary-600 dark:text-primary-400">schedule</span>
-                              <span>{formatTimeTo12Hour(patient.time || '')}</span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <button
+                          <td className="px-6 py-4 text-right">
+                            <button 
                               onClick={(e) => {
                                 e.stopPropagation();
-                                navigate(`/patients/live?location=${selectedLocation}&date=${selectedDate}&doctor=${selectedDoctorFilter}&patientId=${patient.id}`);
+                                setSelectedPatient(patient);
+                                setShowSidebar(true);
                               }}
-                              className="p-2 hover:bg-primary-100 dark:hover:bg-primary-900/20 rounded-lg transition-all"
+                              className="font-medium text-primary dark:text-primary hover:underline"
                             >
-                              <span className="material-symbols-outlined text-gray-400 dark:text-gray-500 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">arrow_forward</span>
+                              View Details
                             </button>
                           </td>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              {/* Pagination */}
+              {searchedPatients.length > 0 && (
+                <nav aria-label="Table navigation" className="flex items-center justify-between p-4">
+                  <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
+                    Showing <span className="font-semibold text-gray-900 dark:text-white">{startIndex + 1}-{Math.min(endIndex, searchedPatients.length)}</span> of <span className="font-semibold text-gray-900 dark:text-white">{searchedPatients.length}</span>
+                  </span>
+                  <ul className="inline-flex items-center -space-x-px">
+                    <li>
+                      <button
+                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                        disabled={currentPage === 1}
+                        className="px-3 h-8 ml-0 leading-tight text-gray-500 bg-white border border-gray-300 rounded-l-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Previous
+                      </button>
+                    </li>
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      return (
+                        <li key={pageNum}>
+                          <button
+                            onClick={() => setCurrentPage(pageNum)}
+                            className={`px-3 h-8 leading-tight ${
+                              currentPage === pageNum
+                                ? 'z-10 text-primary border border-primary bg-primary/10 hover:bg-primary/20 dark:border-gray-700 dark:bg-gray-700 dark:text-white'
+                                : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white'
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        </li>
+                      );
+                    })}
+                    <li>
+                      <button
+                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                        disabled={currentPage === totalPages}
+                        className="px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 rounded-r-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Next
+                      </button>
+                    </li>
+                  </ul>
+                </nav>
               )}
             </div>
           </div>
-        ) : (
-          /* Empty State */
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-8 sm:p-12 text-center">
-            <div className="bg-gradient-to-br from-primary-50 to-secondary-50 dark:from-primary-900/20 dark:to-secondary-900/20 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="material-symbols-outlined text-4xl text-primary-600 dark:text-primary-400">calendar_month</span>
+        </main>
+
+        {/* Right Sidebar - Patient Details */}
+        {selectedPatient && (
+          <aside className={`w-96 flex-col border-l border-gray-200 dark:border-gray-800 bg-background-light dark:bg-background-dark p-6 ${showSidebar ? 'flex' : 'hidden'} xl:flex overflow-y-auto`}>
+            <div className="flex flex-col gap-6">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Patient Details</h3>
+                <button 
+                  onClick={() => {
+                    setShowSidebar(false);
+                    setSelectedPatient(null);
+                  }}
+                  className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white xl:hidden"
+                >
+                  <span className="material-symbols-outlined">close</span>
+                </button>
+              </div>
+              <div className="flex flex-col gap-4 p-4 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-md">
+                    {selectedPatient.patientName?.charAt(0).toUpperCase() || '?'}
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-bold text-gray-900 dark:text-white">{selectedPatient.patientName || 'Unknown'}</h4>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      DOB: {selectedPatient.patientAge ? `${selectedPatient.patientAge} yrs` : 'N/A'}
+                    </p>
+                  </div>
+                </div>
+                <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                  <h5 className="text-xs font-semibold uppercase text-gray-400 dark:text-gray-500 tracking-wider mb-2">Contact Information</h5>
+                  <div className="space-y-2 text-sm">
+                    <p className="text-gray-700 dark:text-gray-300">
+                      <span className="font-semibold">Phone:</span> {selectedPatient.patientPhone || 'N/A'}
+                    </p>
+                    <p className="text-gray-700 dark:text-gray-300">
+                      <span className="font-semibold">Email:</span> {selectedPatient.patientEmail || 'N/A'}
+                    </p>
+                    <p className="text-gray-700 dark:text-gray-300">
+                      <span className="font-semibold">Gender:</span> {selectedPatient.patientGender || 'N/A'}
+                    </p>
+                  </div>
+                </div>
+                <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                  <h5 className="text-xs font-semibold uppercase text-gray-400 dark:text-gray-500 tracking-wider mb-2">Appointment Details</h5>
+                  <div className="space-y-2 text-sm">
+                    <p className="text-gray-700 dark:text-gray-300">
+                      <span className="font-semibold">Token:</span> #{selectedPatient.tokenNumber}
+                    </p>
+                    <p className="text-gray-700 dark:text-gray-300">
+                      <span className="font-semibold">Date:</span> {selectedDate ? format(new Date(selectedDate), 'MMM dd, yyyy') : 'N/A'}
+                    </p>
+                    <p className="text-gray-700 dark:text-gray-300">
+                      <span className="font-semibold">Time:</span> {formatTimeTo12Hour(selectedPatient.time || '')}
+                    </p>
+                    <p className="text-gray-700 dark:text-gray-300">
+                      <span className="font-semibold">Status:</span>{' '}
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeClass(selectedPatient.status)}`}>
+                        {selectedPatient.status}
+                      </span>
+                    </p>
+                    {selectedPatient.reasonForVisit && (
+                      <p className="text-gray-700 dark:text-gray-300">
+                        <span className="font-semibold">Reason:</span> {selectedPatient.reasonForVisit}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => navigate(`/patients/live?location=${selectedLocation}&date=${selectedDate}&doctor=${selectedDoctorFilter}&patientId=${selectedPatient.id}`)}
+                    className="flex-1 flex items-center justify-center gap-2 rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold hover:bg-primary/90"
+                  >
+                    <span className="material-symbols-outlined text-base">edit</span>
+                    <span>View Chart</span>
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setSelectedPatient(selectedPatient);
+                      setShowPatientDetails(true);
+                    }}
+                    className="flex-1 flex items-center justify-center gap-2 rounded-lg h-10 px-4 bg-primary/20 dark:bg-primary/30 text-primary dark:text-primary text-sm font-bold hover:bg-primary/30 dark:hover:bg-primary/40"
+                  >
+                    <span className="material-symbols-outlined text-base">note_add</span>
+                    <span>Add Note</span>
+                  </button>
+                </div>
+              </div>
             </div>
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Select Location & Date</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              Please select a location and date from the filters above to view patients
-            </p>
-            <div className="flex items-center justify-center gap-1.5 text-xs text-gray-500 dark:text-gray-500 bg-gray-50 dark:bg-gray-800 px-4 py-2 rounded-md inline-flex">
-              <span className="material-symbols-outlined text-sm text-primary-600 dark:text-primary-400">info</span>
-              <span>Filter by location and date to see patient appointments</span>
-            </div>
-          </div>
+          </aside>
         )}
       </div>
 

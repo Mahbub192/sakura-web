@@ -39,6 +39,7 @@ import AssistantBookingPage from './pages/assistants/AssistantBookingPage';
 import DoctorBookingPage from './pages/doctors/DoctorBookingPage';
 import ClinicsPage from './pages/clinics/ClinicsPage';
 import GlobalDashboardPage from './pages/admin/GlobalDashboardPage';
+import ReportsPage from './pages/reports/ReportsPage';
 
 const AppContent: React.FC = () => {
   const { isLoading, isAuthenticated, user } = useAuth();
@@ -171,6 +172,12 @@ const AppContent: React.FC = () => {
         <Route path="/global-dashboard" element={
           <ProtectedRoute allowedRoles={['Admin', 'Doctor']}>
             <DashboardLayout><GlobalDashboardPage /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/reports" element={
+          <ProtectedRoute allowedRoles={['Admin', 'Doctor']}>
+            <DashboardLayout><ReportsPage /></DashboardLayout>
           </ProtectedRoute>
         } />
 

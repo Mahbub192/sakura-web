@@ -157,7 +157,7 @@ const PatientsPage: React.FC = () => {
     };
   }, [filteredAppointments, dateFilter]);
 
-  const { totalPatients, totalAppointments, confirmed, pending, completed } = statsData;
+  // const { totalPatients, totalAppointments, confirmed, pending, completed } = statsData;
 
   // Calculate weekly data for charts
   const weeklyData = useMemo(() => {
@@ -353,7 +353,7 @@ const PatientsPage: React.FC = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6 mb-6">
+        {/* <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6 mb-6">
           <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4 rounded-lg flex items-center gap-4">
             <div className="bg-blue-100 dark:bg-blue-900/50 p-3 rounded-full">
               <span className="material-symbols-outlined text-blue-600 dark:text-blue-400">people</span>
@@ -403,7 +403,7 @@ const PatientsPage: React.FC = () => {
               <p className="text-2xl font-bold text-gray-900 dark:text-white">{completed}</p>
             </div>
           </div>
-        </div>
+        </div> */}
 
       {/* Charts Section */}
         {/* <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-6">

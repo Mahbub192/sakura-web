@@ -30,6 +30,24 @@ import CreateAppointmentForm from '../../components/forms/CreateAppointmentForm'
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { toast } from 'react-toastify';
 
+// Helper function to convert 24-hour time to 12-hour AM/PM format
+const formatTimeTo12Hour = (time24: string): string => {
+  if (!time24) return 'N/A';
+  const [hours, minutes] = time24.split(':');
+  const hour24 = parseInt(hours, 10);
+  const mins = minutes || '00';
+  
+  if (hour24 === 0) {
+    return `12:${mins} AM`;
+  } else if (hour24 < 12) {
+    return `${hour24}:${mins} AM`;
+  } else if (hour24 === 12) {
+    return `12:${mins} PM`;
+  } else {
+    return `${hour24 - 12}:${mins} PM`;
+  }
+};
+
 const AppointmentsPage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
@@ -555,8 +573,8 @@ const AppointmentsPage: React.FC = () => {
                             {format(new Date(appointment.date), 'MMM dd, yyyy')}
                           </td>
                           <td className="px-2 sm:px-4 py-3 whitespace-nowrap text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                            <span className="hidden sm:inline">{appointment.startTime} - {appointment.endTime}</span>
-                            <span className="sm:hidden">{appointment.startTime}</span>
+                            <span className="hidden sm:inline">{formatTimeTo12Hour(appointment.startTime || '')} - {formatTimeTo12Hour(appointment.endTime || '')}</span>
+                            <span className="sm:hidden">{formatTimeTo12Hour(appointment.startTime || '')}</span>
                           </td>
                           <td className="px-2 sm:px-4 py-3 whitespace-nowrap text-xs sm:text-sm text-gray-600 dark:text-gray-400 hidden md:table-cell">
                             {appointment.clinic?.locationName || 'N/A'}
@@ -621,7 +639,7 @@ const AppointmentsPage: React.FC = () => {
                                   {format(new Date(patient.date), 'MMM dd, yyyy')}
                                 </td>
                                 <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
-                                  {patient.time || 'N/A'}
+                                  {formatTimeTo12Hour(patient.time || '')}
                                 </td>
                                 <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
                                   {appointment.clinic?.locationName || 'N/A'}

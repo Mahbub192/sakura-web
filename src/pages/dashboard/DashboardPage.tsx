@@ -32,6 +32,24 @@ import {
 } from 'recharts';
 import { format } from 'date-fns';
 import { useAuth } from '../../hooks/useAuth';
+
+// Helper function to convert 24-hour time to 12-hour AM/PM format
+const formatTimeTo12Hour = (time24: string): string => {
+  if (!time24) return 'N/A';
+  const [hours, minutes] = time24.split(':');
+  const hour24 = parseInt(hours, 10);
+  const mins = minutes || '00';
+  
+  if (hour24 === 0) {
+    return `12:${mins} AM`;
+  } else if (hour24 < 12) {
+    return `${hour24}:${mins} AM`;
+  } else if (hour24 === 12) {
+    return `12:${mins} PM`;
+  } else {
+    return `${hour24 - 12}:${mins} PM`;
+  }
+};
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { fetchAppointments, fetchTokenAppointments } from '../../store/slices/appointmentSlice';
 import { fetchDoctors, checkDoctorProfileExists } from '../../store/slices/doctorSlice';
@@ -431,7 +449,7 @@ const DashboardPage: React.FC = () => {
                     <div>
                       <p className="font-bold">{nextAppointment.patientName}</p>
                       <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {nextAppointment.time || 'N/A'} - {nextAppointment.reasonForVisit || 'Consultation'}
+                        {formatTimeTo12Hour(nextAppointment.time || '')} - {nextAppointment.reasonForVisit || 'Consultation'}
                       </p>
                     </div>
                   </div>
@@ -493,7 +511,7 @@ const DashboardPage: React.FC = () => {
                       />
                       <div className="flex-1">
                         <p className="text-sm font-medium">Review appointment for {apt.patientName}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">{apt.time || 'N/A'}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{formatTimeTo12Hour(apt.time || '')}</p>
                       </div>
                     </div>
                   ))}
@@ -549,7 +567,7 @@ const DashboardPage: React.FC = () => {
                     >
                       <div className="flex-shrink-0 w-16 text-right">
                         <p className={`font-bold ${isCompleted || isCancelled ? 'text-gray-500 dark:text-gray-400' : 'text-gray-800 dark:text-gray-200'}`}>
-                          {apt.time || 'N/A'}
+                          {formatTimeTo12Hour(apt.time || '')}
                         </p>
                         <p className="text-sm text-gray-500 dark:text-gray-400">30 min</p>
                       </div>
@@ -634,7 +652,7 @@ const DashboardPage: React.FC = () => {
                           {apt.patientName}
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {format(new Date(apt.date), 'MMM dd, yyyy')} • {apt.time || 'N/A'}
+                          {format(new Date(apt.date), 'MMM dd, yyyy')} • {formatTimeTo12Hour(apt.time || '')}
                         </p>
                         {apt.reasonForVisit && (
                           <p className="text-xs text-gray-600 dark:text-gray-300 truncate mt-1">
@@ -964,7 +982,7 @@ const DashboardPage: React.FC = () => {
                   <tr key={apt.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                     <td className="px-3 py-2 text-gray-900 font-medium">{apt.patientName}</td>
                     <td className="px-3 py-2 text-gray-600">{format(new Date(apt.date), 'MMM dd, yyyy')}</td>
-                    <td className="px-3 py-2 text-gray-600">{apt.time || 'N/A'}</td>
+                    <td className="px-3 py-2 text-gray-600">{formatTimeTo12Hour(apt.time || '')}</td>
                     <td className="px-3 py-2">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                         apt.status === 'Confirmed' ? 'bg-blue-100 text-blue-700' :

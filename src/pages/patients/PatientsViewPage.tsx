@@ -408,75 +408,69 @@ const PatientsViewPage: React.FC = () => {
                   <p className="text-sm text-gray-600 dark:text-gray-400 mt-3">Loading doctor information...</p>
                 </div>
               ) : selectedDoctor ? (
-                <div className="p-5 space-y-4">
+                <div className="p-4 space-y-3">
                   {/* Doctor Header */}
-                  <div className="flex items-center space-x-4 pb-4 border-b border-gray-200 dark:border-gray-700">
-                    <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-full flex items-center justify-center shadow-md">
-                      <span className="material-symbols-outlined text-white text-2xl">person</span>
+                  <div className="flex items-center space-x-3 pb-3 border-b border-gray-200 dark:border-gray-700">
+                    <div className="w-14 h-14 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-full flex items-center justify-center">
+                      <span className="material-symbols-outlined text-white text-xl">person</span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-lg font-bold text-gray-900 dark:text-white truncate">Dr. {selectedDoctor.name}</h3>
-                      <p className="text-primary-600 dark:text-primary-400 font-medium text-sm truncate mt-0.5">{selectedDoctor.specialization}</p>
-                      <div className="flex items-center gap-1 mt-1.5">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <span key={star} className="text-yellow-400 text-sm">★</span>
-                        ))}
-                        <span className="ml-1.5 text-xs text-gray-600 dark:text-gray-400">4.9</span>
-                      </div>
+                      <h3 className="text-base font-bold text-gray-900 dark:text-white truncate">Dr. {selectedDoctor.name}</h3>
+                      <p className="text-primary-600 dark:text-primary-400 text-sm truncate mt-0.5">{selectedDoctor.specialization}</p>
                     </div>
                   </div>
 
                   {/* Doctor Details - Simple Design */}
-                  <div className="space-y-3">
+                  <div className="space-y-2.5">
                     {selectedDoctor.experience && (
-                      <div className="flex items-center gap-3">
-                        <div className="bg-primary-100 dark:bg-primary-900/50 p-2 rounded-lg">
-                          <span className="material-symbols-outlined text-primary-600 dark:text-primary-400 text-lg">school</span>
+                      <div className="flex items-center gap-2.5">
+                        <div className="bg-primary-100 dark:bg-primary-900/50 p-1.5 rounded">
+                          <span className="material-symbols-outlined text-primary-600 dark:text-primary-400 text-base">school</span>
                         </div>
                         <div className="flex-1">
-                          <p className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Experience</p>
-                          <p className="text-sm font-bold text-gray-900 dark:text-white mt-0.5">{selectedDoctor.experience} years</p>
+                          <p className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">Experience</p>
+                          <p className="text-sm font-bold text-gray-900 dark:text-white">{selectedDoctor.experience} years</p>
                         </div>
                       </div>
                     )}
 
-                    <div className="flex items-center gap-3">
-                      <div className="bg-primary-100 dark:bg-primary-900/50 p-2 rounded-lg">
-                        <span className="material-symbols-outlined text-primary-600 dark:text-primary-400 text-lg">workspace_premium</span>
+                    <div className="flex items-center gap-2.5">
+                      <div className="bg-primary-100 dark:bg-primary-900/50 p-1.5 rounded">
+                        <span className="material-symbols-outlined text-primary-600 dark:text-primary-400 text-base">workspace_premium</span>
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Qualification</p>
-                        <p className="text-sm font-bold text-gray-900 dark:text-white truncate mt-0.5">{selectedDoctor.qualification}</p>
+                        <p className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">Qualification</p>
+                        <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{selectedDoctor.qualification}</p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                      <div className="bg-primary-100 dark:bg-primary-900/50 p-2 rounded-lg">
-                        <span className="material-symbols-outlined text-primary-600 dark:text-primary-400 text-lg">payments</span>
+                    <div className="flex items-center gap-2.5">
+                      <div className="bg-primary-100 dark:bg-primary-900/50 p-1.5 rounded">
+                        <span className="material-symbols-outlined text-primary-600 dark:text-primary-400 text-base">payments</span>
                       </div>
                       <div className="flex-1">
-                        <p className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Consultation Fee</p>
-                        <p className="text-sm font-bold text-gray-900 dark:text-white mt-0.5">${selectedDoctor.consultationFee}</p>
+                        <p className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">Consultation Fee</p>
+                        <p className="text-sm font-bold text-gray-900 dark:text-white">${selectedDoctor.consultationFee}</p>
                       </div>
                     </div>
 
                     {selectedClinic && (
-                      <div className="flex items-center gap-3">
-                        <div className="bg-primary-100 dark:bg-primary-900/50 p-2 rounded-lg">
-                          <span className="material-symbols-outlined text-primary-600 dark:text-primary-400 text-lg">location_on</span>
+                      <div className="flex items-center gap-2.5">
+                        <div className="bg-primary-100 dark:bg-primary-900/50 p-1.5 rounded">
+                          <span className="material-symbols-outlined text-primary-600 dark:text-primary-400 text-base">location_on</span>
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">Clinic Location</p>
-                          <p className="text-sm font-bold text-gray-900 dark:text-white truncate mt-0.5">{selectedClinic.locationName}</p>
-                          <p className="text-xs text-gray-600 dark:text-gray-400 truncate mt-0.5">{selectedClinic.address}, {selectedClinic.city}</p>
+                          <p className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">Clinic Location</p>
+                          <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{selectedClinic.locationName}</p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400 truncate">{selectedClinic.address}, {selectedClinic.city}</p>
                         </div>
                       </div>
                     )}
 
                     {selectedDoctor.bio && (
-                      <div className="pt-2">
-                        <p className="text-xs font-bold text-primary-900 dark:text-primary-300 mb-1.5 flex items-center gap-1.5">
-                          <span className="material-symbols-outlined text-sm">info</span>
+                      <div className="pt-1">
+                        <p className="text-xs font-medium text-primary-900 dark:text-primary-300 mb-1 flex items-center gap-1">
+                          <span className="material-symbols-outlined text-xs">info</span>
                           About Doctor
                         </p>
                         <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">{selectedDoctor.bio}</p>
@@ -512,88 +506,79 @@ const PatientsViewPage: React.FC = () => {
                   </p>
                 </div>
               ) : (
-                <div className="p-4 max-h-[calc(100vh-350px)] overflow-y-auto space-y-3">
-                  {filteredPatients.map((patient) => (
-                    <div
-                      key={patient.id}
-                      className="p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-md hover:border-primary-300 dark:hover:border-primary-700 transition-all cursor-pointer"
-                      onClick={() => {
-                        setSelectedPatient(patient);
-                        setShowPatientDetails(true);
-                      }}
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex items-start space-x-3 flex-1 min-w-0">
-                          {/* Patient Avatar */}
-                          <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-full flex items-center justify-center text-white font-bold text-base shadow-md flex-shrink-0">
-                            {patient.patientName?.charAt(0).toUpperCase() || '?'}
-                          </div>
-
-                          {/* Patient Info */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-2">
-                              <h3 className="text-base font-bold text-gray-900 dark:text-white truncate">{patient.patientName || 'Unknown'}</h3>
-                              <span className={`px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0 ${getStatusBadgeClass(patient.status)}`}>
-                                {patient.status}
-                              </span>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs mb-2">
-                              <div className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400">
-                                <span className="material-symbols-outlined text-sm text-primary-600 dark:text-primary-400">person</span>
-                                <span className="font-medium">Age:</span>
-                                <span>{patient.patientAge || 'N/A'} yrs</span>
-                              </div>
-                              <div className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400">
-                                <span className="material-symbols-outlined text-sm text-primary-600 dark:text-primary-400">favorite</span>
-                                <span className="font-medium">Gender:</span>
-                                <span>{patient.patientGender || 'N/A'}</span>
-                              </div>
-                              <div className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400">
-                                <span className="material-symbols-outlined text-sm text-primary-600 dark:text-primary-400">phone</span>
-                                <span className="font-medium">Phone:</span>
-                                <span className="truncate">{patient.patientPhone || 'N/A'}</span>
-                              </div>
-                              <div className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400">
-                                <span className="material-symbols-outlined text-sm text-primary-600 dark:text-primary-400">email</span>
-                                <span className="font-medium">Email:</span>
-                                <span className="truncate">{patient.patientEmail || 'N/A'}</span>
-                              </div>
-                            </div>
-
-                            {/* Token and Time */}
-                            <div className="flex items-center gap-2">
-                              <div className="flex items-center gap-1.5 bg-primary-50 dark:bg-primary-900/20 px-2 py-1 rounded-md border border-primary-200 dark:border-primary-800">
-                                <span className="material-symbols-outlined text-xs text-primary-600 dark:text-primary-400">confirmation_number</span>
-                                <span className="font-semibold text-gray-700 dark:text-gray-300 text-xs">Token:</span>
-                                <span className="font-bold text-primary-600 dark:text-primary-400 text-xs">#{patient.tokenNumber}</span>
-                              </div>
-                              <div className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 px-2 py-1 rounded-md">
-                                <span className="material-symbols-outlined text-xs">schedule</span>
-                                <span className="font-semibold text-xs">{formatTimeTo12Hour(patient.time || '')}</span>
-                              </div>
-                            </div>
-
-                            {patient.reasonForVisit && (
-                              <div className="mt-2 p-2 bg-gray-50 dark:bg-gray-800 rounded text-xs text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700">
-                                <span className="font-semibold">Reason:</span> {patient.reasonForVisit}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/patients/live?location=${selectedLocation}&date=${selectedDate}&doctor=${selectedDoctorFilter}&patientId=${patient.id}`);
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">SI No.</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Name</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Phone Number</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Gender</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Time</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                      {filteredPatients.map((patient, index) => (
+                        <tr
+                          key={patient.id}
+                          className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                          onClick={() => {
+                            setSelectedPatient(patient);
+                            setShowPatientDetails(true);
                           }}
-                          className="p-2 hover:bg-primary-100 dark:hover:bg-primary-900/20 rounded-lg transition-all flex-shrink-0"
                         >
-                          <span className="material-symbols-outlined text-gray-400 dark:text-gray-500 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">arrow_forward</span>
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <span className="text-sm font-semibold text-gray-900 dark:text-white">{index + 1}</span>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md flex-shrink-0">
+                                {patient.patientName?.charAt(0).toUpperCase() || '?'}
+                              </div>
+                              <div>
+                                <div className="text-sm font-bold text-gray-900 dark:text-white">
+                                  {patient.patientName || 'Unknown'}
+                                </div>
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold mt-1 ${getStatusBadgeClass(patient.status)}`}>
+                                  {patient.status}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div className="flex items-center gap-1.5 text-sm text-gray-900 dark:text-white">
+                              <span className="material-symbols-outlined text-sm text-primary-600 dark:text-primary-400">phone</span>
+                              <span>{patient.patientPhone || 'N/A'}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div className="flex items-center gap-1.5 text-sm text-gray-900 dark:text-white">
+                              <span className="material-symbols-outlined text-sm text-primary-600 dark:text-primary-400">favorite</span>
+                              <span>{patient.patientGender || 'N/A'}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div className="flex items-center gap-1.5 text-sm text-gray-900 dark:text-white">
+                              <span className="material-symbols-outlined text-sm text-primary-600 dark:text-primary-400">schedule</span>
+                              <span>{formatTimeTo12Hour(patient.time || '')}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/patients/live?location=${selectedLocation}&date=${selectedDate}&doctor=${selectedDoctorFilter}&patientId=${patient.id}`);
+                              }}
+                              className="p-2 hover:bg-primary-100 dark:hover:bg-primary-900/20 rounded-lg transition-all"
+                            >
+                              <span className="material-symbols-outlined text-gray-400 dark:text-gray-500 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">arrow_forward</span>
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>

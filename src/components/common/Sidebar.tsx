@@ -30,8 +30,9 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen, userRole
 
     const roleBasedItems = [
       { name: 'Appointments', href: '/appointments', icon: 'calendar_month', roles: ['Admin', 'Doctor', 'Assistant'] },
-      { name: 'Patients', href: '/patients', icon: 'groups', roles: ['Admin', 'Doctor', 'Assistant'] },
-      { name: 'Medical Records', href: '/patients/view', icon: 'folder_shared', roles: ['Admin', 'Doctor', 'Assistant'] },
+      { name: 'All Patients', href: '/patients', icon: 'groups', roles: ['Admin', 'Doctor', 'Assistant'] },
+      { name: 'Patients View', href: '/patients/view', icon: 'groups', roles: ['Admin', 'Doctor', 'Assistant'] },
+      { name: 'Medical Records', href: '/patients/medical-records', icon: 'folder_shared', roles: ['Admin', 'Doctor', 'Assistant'] },
       { name: 'Prescriptions', href: '/appointments', icon: 'medication', roles: ['Admin', 'Doctor'] },
       { name: 'Lab Results', href: '/appointments', icon: 'science', roles: ['Admin', 'Doctor'] },
       { name: 'Reports', href: '/global-dashboard', icon: 'analytics', roles: ['Admin', 'Doctor'] },

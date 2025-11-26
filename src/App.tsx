@@ -183,7 +183,7 @@ const AppContent: React.FC = () => {
         } />
 
         <Route path="/settings" element={
-          <ProtectedRoute allowedRoles={['Doctor']}>
+          <ProtectedRoute allowedRoles={['Admin', 'Doctor', 'Assistant', 'User']}>
             <DashboardLayout><SettingsPage /></DashboardLayout>
           </ProtectedRoute>
         } />

@@ -41,6 +41,8 @@ import ClinicsPage from './pages/clinics/ClinicsPage';
 import GlobalDashboardPage from './pages/admin/GlobalDashboardPage';
 import ReportsPage from './pages/reports/ReportsPage';
 import SettingsPage from './pages/settings/SettingsPage';
+import MessagesPage from './pages/messages/MessagesPage';
+import PatientMessagesPage from './pages/messages/PatientMessagesPage';
 
 const AppContent: React.FC = () => {
   const { isLoading, isAuthenticated, user } = useAuth();
@@ -115,6 +117,12 @@ const AppContent: React.FC = () => {
           </ProtectedRoute>
         } />
         
+        <Route path="/patients/messages" element={
+          <ProtectedRoute allowedRoles={['User']}>
+            <DashboardLayout><PatientMessagesPage /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+        
         {/* Profile Creation Routes */}
         <Route path="/profile/create-doctor" element={
           <ProtectedRoute allowedRoles={['Doctor']}>
@@ -185,6 +193,12 @@ const AppContent: React.FC = () => {
         <Route path="/settings" element={
           <ProtectedRoute allowedRoles={['Admin', 'Doctor', 'Assistant', 'User']}>
             <DashboardLayout><SettingsPage /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/messages" element={
+          <ProtectedRoute allowedRoles={['Admin', 'Doctor', 'Assistant']}>
+            <DashboardLayout><MessagesPage /></DashboardLayout>
           </ProtectedRoute>
         } />
 

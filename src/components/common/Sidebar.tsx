@@ -36,12 +36,14 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen, userRole
       { name: 'Prescriptions', href: '/appointments', icon: 'medication', roles: ['Admin', 'Doctor'] },
       { name: 'Lab Results', href: '/appointments', icon: 'science', roles: ['Admin', 'Doctor'] },
       { name: 'Reports', href: '/reports', icon: 'bar_chart', roles: ['Admin', 'Doctor'] },
+      { name: 'Messages', href: '/messages', icon: 'chat', roles: ['Admin', 'Doctor', 'Assistant'] },
       { name: 'Doctors', href: '/doctors', icon: 'groups', roles: ['Admin', 'Assistant'] },
       { name: 'Assistants', href: '/assistants', icon: 'groups', roles: ['Doctor'] },
       { name: 'Book Appointment', href: '/assistants/booking', icon: 'calendar_month', roles: ['Assistant'] },
       { name: 'Clinics', href: '/clinics', icon: 'business', roles: ['Admin'] },
       { name: 'My Appointments', href: '/patients', icon: 'calendar_month', roles: ['User'] },
       { name: 'Book Appointment', href: '/patients/book', icon: 'calendar_month', roles: ['User'] },
+      { name: 'Messages', href: '/patients/messages', icon: 'chat', roles: ['User'] },
       { name: 'Administration', href: '/admin', icon: 'admin_panel_settings', roles: ['Admin'] },
     ];
 

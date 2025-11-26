@@ -91,7 +91,7 @@ const AppContent: React.FC = () => {
         } />
         
         <Route path="/appointments" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Doctor', 'Assistant']}>
+          <ProtectedRoute allowedRoles={['Admin', 'Doctor']}>
             <DashboardLayout><AppointmentsPage /></DashboardLayout>
           </ProtectedRoute>
         } />
@@ -103,7 +103,7 @@ const AppContent: React.FC = () => {
         } />
         
         <Route path="/patients" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Doctor', 'Assistant', 'User']}>
+          <ProtectedRoute allowedRoles={['Admin', 'Doctor', 'User']}>
             <DashboardLayout><PatientsPage /></DashboardLayout>
           </ProtectedRoute>
         } />

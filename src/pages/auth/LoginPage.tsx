@@ -10,7 +10,7 @@ import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { toast } from 'react-toastify';
 
 const schema = yup.object().shape({
-  email: yup.string().email('Invalid email').required('Email is required'),
+  phone: yup.string().required('Phone number is required').matches(/^[0-9+\-\s()]+$/, 'Invalid phone number format'),
   password: yup.string().min(6, 'Password must be at least 6 characters').required('Password is required'),
 });
 
@@ -89,26 +89,26 @@ const LoginPage: React.FC = () => {
               {/* Login Form */}
               <div className="mt-10">
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" method="POST">
-                  {/* Email Field */}
+                  {/* Phone Field */}
                   <div className="flex flex-col min-w-40 flex-1">
                     <label 
                       className="text-slate-800 dark:text-slate-300 text-base font-medium leading-normal pb-2" 
-                      htmlFor="email"
+                      htmlFor="phone"
                     >
-                      Email Address
+                      Phone Number
                     </label>
                     <input
-                      {...register('email')}
-                      autoComplete="email"
+                      {...register('phone')}
+                      autoComplete="tel"
                       className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-slate-900 dark:text-slate-100 focus:outline-0 focus:ring-2 focus:ring-primary/20 border border-slate-300 dark:border-slate-700 bg-background-light dark:bg-background-dark focus:border-primary/50 dark:focus:border-primary/50 h-14 placeholder:text-slate-400 dark:placeholder:text-slate-500 p-[15px] text-base font-normal leading-normal"
-                      id="email"
-                      name="email"
-                      placeholder="Enter your email"
+                      id="phone"
+                      name="phone"
+                      placeholder="Enter your phone number"
                       required
-                      type="email"
+                      type="tel"
                     />
-                    {errors.email && (
-                      <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+                    {errors.phone && (
+                      <p className="mt-1 text-sm text-red-600">{errors.phone.message}</p>
                     )}
                   </div>
 

@@ -1,9 +1,9 @@
-import React from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
+import {
   XMarkIcon as XIcon,
 } from '@heroicons/react/24/outline';
+import { AnimatePresence, motion } from 'framer-motion';
+import React from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAppDispatch } from '../../hooks/redux';
 import { logoutUser } from '../../store/slices/authSlice';
 
@@ -29,10 +29,10 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen, userRole
     ];
 
     const roleBasedItems = [
-      { name: 'Appointments', href: '/appointments', icon: 'calendar_month', roles: ['Admin', 'Doctor', 'Assistant'] },
-      { name: 'All Patients', href: '/patients', icon: 'groups', roles: ['Admin', 'Doctor', 'Assistant'] },
+      { name: 'Appointments', href: '/appointments', icon: 'calendar_month', roles: ['Admin', 'Doctor'] },
+      { name: 'All Patients', href: '/patients', icon: 'groups', roles: ['Admin', 'Doctor'] },
       { name: 'Patients View', href: '/patients/view', icon: 'groups', roles: ['Admin', 'Doctor', 'Assistant'] },
-      { name: 'Medical Records', href: '/patients/medical-records', icon: 'folder_shared', roles: ['Admin', 'Doctor', 'Assistant'] },
+      { name: 'Medical Records', href: '/patients/medical-records', icon: 'folder_shared', roles: ['Admin', 'Doctor'] },
       { name: 'Prescriptions', href: '/appointments', icon: 'medication', roles: ['Admin', 'Doctor'] },
       { name: 'Lab Results', href: '/appointments', icon: 'science', roles: ['Admin', 'Doctor'] },
       { name: 'Reports', href: '/reports', icon: 'bar_chart', roles: ['Admin', 'Doctor'] },

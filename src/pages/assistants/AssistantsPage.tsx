@@ -26,7 +26,7 @@ const AssistantsPage: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showCredentialsModal, setShowCredentialsModal] = useState(false);
-  const [newAssistantCredentials, setNewAssistantCredentials] = useState<{ email: string; password: string } | null>(null);
+  const [newAssistantCredentials, setNewAssistantCredentials] = useState<{ email: string; password: string; phone: string } | null>(null);
   const [selectedAssistant, setSelectedAssistant] = useState<Assistant | null>(null);
   const [formData, setFormData] = useState<CreateAssistantRequest & { password?: string; doctorId?: number }>({
     name: '',
@@ -66,6 +66,7 @@ const AssistantsPage: React.FC = () => {
       setNewAssistantCredentials({
         email: formData.email,
         password: 'password123',
+        phone: formData.phone,
       });
       setShowCredentialsModal(true);
       
@@ -536,6 +537,28 @@ const AssistantsPage: React.FC = () => {
                     onClick={() => {
                       navigator.clipboard.writeText(newAssistantCredentials?.email || '');
                       toast.success('Email copied to clipboard!');
+                    }}
+                    className="px-3 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-md hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors text-sm"
+                  >
+                    Copy
+                  </button>
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Phone Number:</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={newAssistantCredentials?.phone || ''}
+                    className="flex-1 px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-mono text-gray-900 dark:text-white"
+                    onClick={(e) => (e.target as HTMLInputElement).select()}
+                  />
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(newAssistantCredentials?.phone || '');
+                      toast.success('Phone number copied to clipboard!');
                     }}
                     className="px-3 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-md hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors text-sm"
                   >

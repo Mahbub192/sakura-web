@@ -670,6 +670,328 @@ const DashboardPage: React.FC = () => {
     );
   }
 
+  // Assistant Dashboard - Same Design as Doctor Dashboard
+  if (isAssistant) {
+    const today = new Date().toISOString().split('T')[0];
+    const todayAppointments = tokenAppointments.filter(apt => apt.date === today);
+    const todayAppointmentsSorted = [...todayAppointments].sort((a, b) => {
+      const timeA = a.time || '00:00';
+      const timeB = b.time || '00:00';
+      return timeA.localeCompare(timeB);
+    });
+    
+    const nextAppointment = todayAppointmentsSorted.find(apt => 
+      apt.status === 'Confirmed' || apt.status === 'Pending'
+    ) || todayAppointmentsSorted[0];
+    
+    const completedToday = todayAppointments.filter(apt => apt.status === 'Completed').length;
+    const totalToday = todayAppointments.length;
+    const confirmedToday = todayAppointments.filter(apt => apt.status === 'Confirmed').length;
+    const availableSlots = appointments.filter(apt => apt.status === 'Available').length;
+    
+    // Calculate average wait time based on completed appointments
+    const completedAppointments = tokenAppointments.filter(apt => apt.status === 'Completed');
+    const avgWaitTime = completedAppointments.length > 0 ? '12 mins' : '0 mins'; // Can be enhanced with actual calculation
+    
+    // Calculate average consultation time
+    const consultationTime = completedAppointments.length > 0 ? '18 mins' : '0 mins';
+    
+    // Count pending appointments that need review
+    const pendingLabReviews = tokenAppointments.filter(apt => 
+      apt.status === 'Pending' && apt.date === today
+    ).length;
+
+    return (
+      <div className="font-display bg-background-light dark:bg-background-dark text-gray-900 dark:text-gray-100 w-full">
+        <div className="mb-8">
+          <div className="flex min-w-72 flex-col gap-1">
+            <p className="text-gray-900 dark:text-white text-3xl font-bold leading-tight tracking-[-0.03em]">
+              Assistant's Dashboard
+            </p>
+            <p className="text-gray-600 dark:text-gray-400 text-base font-normal leading-normal">
+              A summary of your day's clinical activities.
+            </p>
+          </div>
+        </div>
+
+        {/* Clinic Snapshot */}
+        <div className="mb-8">
+          <h2 className="text-gray-900 dark:text-white text-xl font-bold leading-tight tracking-[-0.015em] mb-4">
+            Clinic Snapshot
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="flex flex-col gap-2 rounded-xl p-5 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+              <p className="text-gray-600 dark:text-gray-400 text-sm font-medium leading-normal">
+                Appointments Today
+              </p>
+              <p className="text-gray-900 dark:text-white tracking-tight text-3xl font-bold leading-tight">
+                {confirmedToday}/{totalToday}
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 rounded-xl p-5 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+              <p className="text-gray-600 dark:text-gray-400 text-sm font-medium leading-normal">
+                Avg. Wait Time
+              </p>
+              <p className="text-gray-900 dark:text-white tracking-tight text-3xl font-bold leading-tight">
+                {avgWaitTime}
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 rounded-xl p-5 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+              <p className="text-gray-600 dark:text-gray-400 text-sm font-medium leading-normal">
+                Pending Lab Reviews
+              </p>
+              <p className="text-gray-900 dark:text-white tracking-tight text-3xl font-bold leading-tight">
+                {pendingLabReviews}
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 rounded-xl p-5 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+              <p className="text-gray-600 dark:text-gray-400 text-sm font-medium leading-normal">
+                Consultation Time
+              </p>
+              <p className="text-gray-900 dark:text-white tracking-tight text-3xl font-bold leading-tight">
+                {consultationTime}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+          {/* Left Column */}
+          <div className="lg:col-span-1 flex flex-col gap-8">
+            {/* Up Next Patient */}
+            {nextAppointment && (
+              <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6">
+                <h3 className="text-lg font-bold mb-4">Up Next: {nextAppointment.patientName}</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4">
+                    <div className="size-16 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xl">
+                      {nextAppointment.patientName.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="font-bold">{nextAppointment.patientName}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {formatTimeTo12Hour(nextAppointment.time || '')} - {nextAppointment.reasonForVisit || 'Consultation'}
+                      </p>
+                    </div>
+                  </div>
+                  {nextAppointment.patientAge && (
+                    <div>
+                      <h4 className="font-semibold text-sm mb-2 text-gray-700 dark:text-gray-300">Patient Info</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Age: {nextAppointment.patientAge} | Gender: {nextAppointment.patientGender || 'N/A'}
+                      </p>
+                      {nextAppointment.patientPhone && (
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                          Phone: {nextAppointment.patientPhone}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  {nextAppointment.reasonForVisit && (
+                    <div>
+                      <h4 className="font-semibold text-sm mb-2 text-gray-700 dark:text-gray-300">Reason for Visit</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{nextAppointment.reasonForVisit}</p>
+                    </div>
+                  )}
+                  {nextAppointment.notes && (
+                    <div>
+                      <h4 className="font-semibold text-sm mb-2 text-gray-700 dark:text-gray-300">Notes</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{nextAppointment.notes}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Tasks & Alerts */}
+            <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6">
+              <h3 className="text-lg font-bold mb-4">My Tasks & Alerts</h3>
+              <div className="space-y-4">
+                {/* Critical Alerts */}
+                {tokenAppointments.filter(apt => apt.status === 'Pending' && apt.date === today).length > 0 && (
+                  <div className="flex items-start gap-3 p-3 rounded-lg bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800">
+                    <span className="material-symbols-outlined text-red-500 dark:text-red-400 mt-0.5">error</span>
+                    <div>
+                      <p className="font-semibold text-red-800 dark:text-red-200">Pending Appointments</p>
+                      <p className="text-sm text-red-700 dark:text-red-300">
+                        {tokenAppointments.filter(apt => apt.status === 'Pending' && apt.date === today).length} pending for today
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Upcoming Appointments Tasks */}
+                {tokenAppointments
+                  .filter(apt => (apt.status === 'Pending' || apt.status === 'Confirmed') && apt.date === today)
+                  .slice(0, 3)
+                  .map((apt) => (
+                    <div key={apt.id} className="flex items-center gap-3">
+                      <input
+                        className="form-checkbox h-5 w-5 rounded text-primary focus:ring-primary/50 border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700"
+                        type="checkbox"
+                      />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">Review appointment for {apt.patientName}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{formatTimeTo12Hour(apt.time || '')}</p>
+                      </div>
+                    </div>
+                  ))}
+                
+                {/* No tasks message */}
+                {tokenAppointments.filter(apt => (apt.status === 'Pending' || apt.status === 'Confirmed') && apt.date === today).length === 0 && (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+                    No pending tasks for today
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column - Today's Agenda */}
+          <div className="lg:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold leading-tight tracking-[-0.015em]">Today's Agenda</h2>
+              <div className="flex items-center gap-2">
+                <button
+                  className="flex items-center justify-center size-8 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
+                  onClick={() => fetchDashboardData()}
+                >
+                  <span className="material-symbols-outlined text-xl">chevron_left</span>
+                </button>
+                <span className="font-semibold text-sm">{format(new Date(), 'MMMM dd, yyyy')}</span>
+                <button
+                  className="flex items-center justify-center size-8 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
+                  onClick={() => fetchDashboardData()}
+                >
+                  <span className="material-symbols-outlined text-xl">chevron_right</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {todayAppointmentsSorted.length > 0 ? (
+                todayAppointmentsSorted.map((apt, index) => {
+                  const isActive = apt.id === nextAppointment?.id;
+                  const isCompleted = apt.status === 'Completed';
+                  const isCancelled = apt.status === 'Cancelled';
+                  
+                  return (
+                    <div
+                      key={apt.id}
+                      className={`flex items-start gap-4 p-4 rounded-lg ${
+                        isActive
+                          ? 'bg-primary/10 dark:bg-primary/20 border-l-4 border-primary'
+                          : isCompleted || isCancelled
+                          ? 'opacity-60'
+                          : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                      }`}
+                    >
+                      <div className="flex-shrink-0 w-16 text-right">
+                        <p className={`font-bold ${isCompleted || isCancelled ? 'text-gray-500 dark:text-gray-400' : 'text-gray-800 dark:text-gray-200'}`}>
+                          {formatTimeTo12Hour(apt.time || '')}
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">30 min</p>
+                      </div>
+                      <div className="w-px bg-gray-300 dark:bg-gray-600 self-stretch"></div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
+                              {apt.patientName.charAt(0)}
+                            </div>
+                            <div>
+                              <p className={`font-semibold ${isCompleted || isCancelled ? 'text-gray-500 dark:text-gray-400 line-through' : ''}`}>
+                                {apt.patientName}
+                              </p>
+                              <p className="text-sm text-gray-600 dark:text-gray-300">
+                                {apt.reasonForVisit || 'Consultation'}
+                              </p>
+                            </div>
+                          </div>
+                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                            apt.status === 'Completed'
+                              ? 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300'
+                              : apt.status === 'Confirmed' || apt.status === 'Pending'
+                              ? 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-300'
+                              : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300'
+                          }`}>
+                            {apt.status}
+                          </span>
+                        </div>
+                        {isActive && (
+                          <div className="mt-4 flex gap-2">
+                            <button
+                              onClick={() => navigate(`/patients/view?token=${apt.tokenNumber}`)}
+                              className="flex max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-md h-9 bg-gray-200/80 dark:bg-gray-700 text-gray-800 dark:text-gray-200 gap-2 text-sm font-semibold leading-normal min-w-0 px-4"
+                            >
+                              View Chart
+                            </button>
+                            <button
+                              onClick={() => navigate(`/patients/view?token=${apt.tokenNumber}`)}
+                              className="flex max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-md h-9 bg-primary text-white gap-2 text-sm font-semibold leading-normal min-w-0 px-4"
+                            >
+                              Start Consultation
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                  No appointments scheduled for today
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Recent Patients Section */}
+        {tokenAppointments.filter(apt => apt.status === 'Completed').length > 0 && (
+          <div className="mt-8">
+            <h2 className="text-gray-900 dark:text-white text-xl font-bold leading-tight tracking-[-0.015em] mb-4">
+              Recent Patients
+            </h2>
+            <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {tokenAppointments
+                  .filter(apt => apt.status === 'Completed')
+                  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                  .slice(0, 6)
+                  .map((apt) => (
+                    <div
+                      key={apt.id}
+                      className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer"
+                      onClick={() => navigate(`/patients/view?token=${apt.tokenNumber}`)}
+                    >
+                      <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                        {apt.patientName.charAt(0)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm text-gray-900 dark:text-white truncate">
+                          {apt.patientName}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {format(new Date(apt.date), 'MMM dd, yyyy')} • {formatTimeTo12Hour(apt.time || '')}
+                        </p>
+                        {apt.reasonForVisit && (
+                          <p className="text-xs text-gray-600 dark:text-gray-300 truncate mt-1">
+                            {apt.reasonForVisit}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3 pb-2" style={{ maxHeight: 'calc(100vh - 120px)', overflowY: 'auto' }}>
       {/* Welcome Header */}

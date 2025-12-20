@@ -93,7 +93,12 @@ const authSlice = createSlice({
       })
       .addCase(loginUser.fulfilled, (state, action: PayloadAction<AuthResponse>) => {
         state.isLoading = false;
-        state.user = action.payload.user;
+        // Normalize role: if it's an object, extract the name; otherwise use as string
+        const userData = { ...action.payload.user };
+        if (userData.role && typeof userData.role === 'object' && userData.role.name) {
+          userData.role = userData.role.name;
+        }
+        state.user = userData as User;
         state.token = action.payload.access_token;
         state.isAuthenticated = true;
         state.error = null;
@@ -112,7 +117,12 @@ const authSlice = createSlice({
       })
       .addCase(registerUser.fulfilled, (state, action: PayloadAction<AuthResponse>) => {
         state.isLoading = false;
-        state.user = action.payload.user;
+        // Normalize role: if it's an object, extract the name; otherwise use as string
+        const userData = { ...action.payload.user };
+        if (userData.role && typeof userData.role === 'object' && userData.role.name) {
+          userData.role = userData.role.name;
+        }
+        state.user = userData as User;
         state.token = action.payload.access_token;
         state.isAuthenticated = true;
         state.error = null;
@@ -131,9 +141,14 @@ const authSlice = createSlice({
           state.isLoading = true;
         }
       })
-      .addCase(getCurrentUser.fulfilled, (state, action: PayloadAction<User>) => {
+      .addCase(getCurrentUser.fulfilled, (state, action: PayloadAction<User | any>) => {
         state.isLoading = false;
-        state.user = action.payload;
+        // Normalize role: if it's an object, extract the name; otherwise use as string
+        const userData = { ...action.payload };
+        if (userData.role && typeof userData.role === 'object' && userData.role.name) {
+          userData.role = userData.role.name;
+        }
+        state.user = userData as User;
         state.isAuthenticated = true;
         state.error = null;
       })

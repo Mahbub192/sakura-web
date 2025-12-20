@@ -33,7 +33,8 @@ const LivePatientPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const dispatch = useAppDispatch();
   const { isAssistant, isAuthenticated, user } = useAuth();
-  const canAccessLivePatient = isAuthenticated && user && ['Admin', 'Doctor', 'Assistant'].includes(user.role);
+  const userRole = typeof user?.role === 'string' ? user.role : user?.role?.name || '';
+  const canAccessLivePatient = isAuthenticated && user && ['Admin', 'Doctor', 'Assistant'].includes(userRole);
   const { isLoading } = useAppSelector(state => state.appointments);
   const { clinics } = useAppSelector(state => state.clinics);
   const { doctors, currentDoctorProfile } = useAppSelector(state => state.doctors);

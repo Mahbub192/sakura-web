@@ -35,7 +35,8 @@ const HomePage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { isAuthenticated, user } = useAuth();
-  const canAccessLivePatient = isAuthenticated && user && ['Admin', 'Doctor', 'Assistant'].includes(user.role);
+  const userRole = typeof user?.role === 'string' ? user.role : user?.role?.name;
+  const canAccessLivePatient = isAuthenticated && user && ['Admin', 'Doctor', 'Assistant'].includes(userRole || '');
 
   const handleLogout = async () => {
     await dispatch(logoutUser());
@@ -268,7 +269,9 @@ const HomePage: React.FC = () => {
                     <p className="text-sm font-semibold text-text-light dark:text-text-dark">
                       {user.firstName} {user.lastName}
                     </p>
-                    <p className="text-xs text-text-muted-light dark:text-text-muted-dark">{user.role}</p>
+                    <p className="text-xs text-text-muted-light dark:text-text-muted-dark">
+                      {typeof user.role === 'string' ? user.role : user.role?.name || 'User'}
+                    </p>
                   </div>
                 </div>
                 {/* Dashboard Button */}

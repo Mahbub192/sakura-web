@@ -14,15 +14,23 @@ export const useAuth = () => {
     }
   }, [token, user, dispatch]);
 
+  // Helper to get role as string (handles both string and object)
+  const getUserRole = () => {
+    if (!user?.role) return '';
+    return typeof user.role === 'string' ? user.role : user.role?.name || '';
+  };
+
+  const userRole = getUserRole();
+
   return {
     user,
     token,
     isLoading,
     error,
     isAuthenticated,
-    isAdmin: user?.role === 'Admin',
-    isDoctor: user?.role === 'Doctor',
-    isAssistant: user?.role === 'Assistant',
-    isPatient: user?.role === 'User',
+    isAdmin: userRole === 'Admin',
+    isDoctor: userRole === 'Doctor',
+    isAssistant: userRole === 'Assistant',
+    isPatient: userRole === 'User',
   };
 };

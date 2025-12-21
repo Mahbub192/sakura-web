@@ -1,40 +1,37 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { format } from 'date-fns';
-import { 
-  CalendarIcon,
-  ClockIcon,
-  UserCircleIcon,
-  PhoneIcon,
-  EnvelopeIcon,
-  MapPinIcon,
-  HeartIcon,
+import {
   BuildingOfficeIcon,
-  MagnifyingGlassIcon,
+  CalendarIcon,
   CheckCircleIcon,
-} from '@heroicons/react/24/outline';
-import { useAppDispatch, useAppSelector } from '../../hooks/redux';
-import { useAuth } from '../../hooks/useAuth';
-import { fetchClinics } from '../../store/slices/clinicSlice';
-import { fetchCurrentDoctorProfile } from '../../store/slices/doctorSlice';
-import { assistantBookingService, CreatePatientBookingRequest } from '../../services/assistantBookingService';
+  ClockIcon,
+} from "@heroicons/react/24/outline";
+import { format } from "date-fns";
+import { motion } from "framer-motion";
+import React, { useEffect, useState } from "react";
+import { useAppDispatch, useAppSelector } from "../../hooks/redux";
+import { useAuth } from "../../hooks/useAuth";
+import {
+  assistantBookingService,
+  CreatePatientBookingRequest,
+} from "../../services/assistantBookingService";
+import { fetchClinics } from "../../store/slices/clinicSlice";
+import { fetchCurrentDoctorProfile } from "../../store/slices/doctorSlice";
 // Removed fetchAvailableSlots import - using assistant-specific service instead
-import Button from '../../components/ui/Button';
-import Modal from '../../components/ui/Modal';
-import LoadingSpinner from '../../components/ui/LoadingSpinner';
-import { toast } from 'react-toastify';
-import { Appointment } from '../../types';
+import { toast } from "react-toastify";
+import Button from "../../components/ui/Button";
+import LoadingSpinner from "../../components/ui/LoadingSpinner";
+import Modal from "../../components/ui/Modal";
+import { Appointment } from "../../types";
 
 // Helper function to convert 24-hour time to 12-hour AM/PM format
 const formatTimeTo12Hour = (time24: string): string => {
-  if (!time24) return '';
-  const [hours, minutes] = time24.split(':');
+  if (!time24) return "";
+  const [hours, minutes] = time24.split(":");
   const hour24 = parseInt(hours, 10);
-  
+
   // Get floor value of minutes (remove decimal places)
-  const minsFloat = parseFloat(minutes || '0');
-  const mins = Math.floor(minsFloat).toString().padStart(2, '0');
-  
+  const minsFloat = parseFloat(minutes || "0");
+  const mins = Math.floor(minsFloat).toString().padStart(2, "0");
+
   if (hour24 === 0) {
     return `12:${mins} AM`;
   } else if (hour24 < 12) {
@@ -49,7 +46,7 @@ const formatTimeTo12Hour = (time24: string): string => {
 // Helper function to calculate time in minutes from time string (HH:MM)
 const timeToMinutes = (timeStr: string): number => {
   if (!timeStr) return 0;
-  const [hours, minutes] = timeStr.split(':').map(Number);
+  const [hours, minutes] = timeStr.split(":").map(Number);
   return hours * 60 + (minutes || 0);
 };
 
@@ -57,54 +54,68 @@ const timeToMinutes = (timeStr: string): number => {
 const minutesToTime = (totalMinutes: number): string => {
   const hours = Math.floor(totalMinutes / 60) % 24;
   const minutes = Math.floor(totalMinutes % 60); // Use floor to remove decimal places
-  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+  return `${hours.toString().padStart(2, "0")}:${minutes
+    .toString()
+    .padStart(2, "0")}`;
 };
 
 // Helper function to calculate individual patient slot time
-const calculatePatientSlotTime = (startTime: string, endTime: string, slotIndex: number, totalPatients: number): string => {
+const calculatePatientSlotTime = (
+  startTime: string,
+  endTime: string,
+  slotIndex: number,
+  totalPatients: number
+): string => {
   if (!startTime || !endTime || totalPatients === 0) return startTime;
-  
+
   const startMinutes = timeToMinutes(startTime);
   const endMinutes = timeToMinutes(endTime);
   const totalDuration = endMinutes - startMinutes;
   const durationPerPatient = totalDuration / totalPatients;
-  const slotTimeMinutes = startMinutes + (durationPerPatient * (slotIndex - 1));
+  const slotTimeMinutes = startMinutes + durationPerPatient * (slotIndex - 1);
   return minutesToTime(slotTimeMinutes);
 };
 
 const AssistantBookingPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const { isAssistant, user } = useAuth();
-  
-  console.log('[AssistantBookingPage] Component rendered, isAssistant:', isAssistant, 'user:', user);
-  const { clinics } = useAppSelector(state => state.clinics);
-  const { currentDoctorProfile } = useAppSelector(state => state.doctors);
-  
+
+  console.log(
+    "[AssistantBookingPage] Component rendered, isAssistant:",
+    isAssistant,
+    "user:",
+    user
+  );
+  const { clinics } = useAppSelector((state) => state.clinics);
+  const { currentDoctorProfile } = useAppSelector((state) => state.doctors);
+
   const [availableSlots, setAvailableSlots] = useState<Appointment[]>([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<string>('');
+  const [selectedDate, setSelectedDate] = useState<string>("");
   const [selectedClinic, setSelectedClinic] = useState<number | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<Appointment | null>(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [isBooking, setIsBooking] = useState(false);
-  const [selectedSlotUniqueId, setSelectedSlotUniqueId] = React.useState<string | null>(null);
-  
+  const [selectedSlotUniqueId, setSelectedSlotUniqueId] = React.useState<
+    string | null
+  >(null);
+
   const [bookingData, setBookingData] = useState<CreatePatientBookingRequest>({
     doctorId: 0,
     appointmentId: 0,
-    patientName: '',
-    patientEmail: '',
-    patientPhone: '',
+    patientName: "",
+    patientEmail: "",
+    patientPhone: "",
     patientAge: 0,
-    patientGender: '',
-    patientLocation: '',
-    patientType: 'New',
+    patientGender: "",
+    patientLocation: "",
+    patientType: "New",
     isOldPatient: false,
     doctorFee: 0,
-    reasonForVisit: '',
-    notes: '',
-    date: '',
-    time: '',
+    reasonForVisit: "",
+    notes: "",
+    date: "",
+    time: "",
   });
 
   useEffect(() => {
@@ -126,8 +137,10 @@ const AssistantBookingPage: React.FC = () => {
           );
           setAvailableSlots(slots);
         } catch (error: any) {
-          console.error('Failed to fetch available slots:', error);
-          toast.error(error?.response?.data?.message || 'Failed to fetch available slots');
+          console.error("Failed to fetch available slots:", error);
+          toast.error(
+            error?.response?.data?.message || "Failed to fetch available slots"
+          );
           setAvailableSlots([]);
         } finally {
           setSlotsLoading(false);
@@ -142,7 +155,7 @@ const AssistantBookingPage: React.FC = () => {
 
   useEffect(() => {
     if (currentDoctorProfile) {
-      setBookingData(prev => ({
+      setBookingData((prev) => ({
         ...prev,
         doctorId: currentDoctorProfile.id,
         doctorFee: currentDoctorProfile.consultationFee,
@@ -152,62 +165,69 @@ const AssistantBookingPage: React.FC = () => {
 
   const handleSlotSelect = (slot: any) => {
     // Find the original appointment slot from filteredSlots
-    const originalSlot = filteredSlots.find(s => s.id === slot.id);
+    const originalSlot = filteredSlots.find((s) => s.id === slot.id);
     if (!originalSlot) return;
-    
+
     // Convert time from 12-hour format to 24-hour format if needed
     const time24 = slot.individualStartTime || slot.startTime;
     // Ensure time is in HH:MM format (24-hour)
     let timeValue = time24;
-    if (time24 && time24.includes(' ')) {
+    if (time24 && time24.includes(" ")) {
       // If it's in 12-hour format, convert it
-      const [time, period] = time24.split(' ');
-      const [hours, minutes] = time.split(':');
+      const [time, period] = time24.split(" ");
+      const [hours, minutes] = time.split(":");
       let hour24 = parseInt(hours, 10);
-      if (period === 'PM' && hour24 !== 12) hour24 += 12;
-      if (period === 'AM' && hour24 === 12) hour24 = 0;
-      timeValue = `${hour24.toString().padStart(2, '0')}:${minutes}`;
+      if (period === "PM" && hour24 !== 12) hour24 += 12;
+      if (period === "AM" && hour24 === 12) hour24 = 0;
+      timeValue = `${hour24.toString().padStart(2, "0")}:${minutes}`;
     }
-    
+
     setSelectedSlot(originalSlot);
     setSelectedSlotUniqueId(slot.uniqueId);
-    setBookingData(prev => ({
+    setBookingData((prev) => ({
       ...prev,
       doctorId: currentDoctorProfile?.id || slot.doctorId || 0,
       appointmentId: slot.id,
       date: slot.date,
       time: timeValue,
-      doctorFee: slot.doctor?.consultationFee || currentDoctorProfile?.consultationFee || 0,
+      doctorFee:
+        slot.doctor?.consultationFee ||
+        currentDoctorProfile?.consultationFee ||
+        0,
     }));
     setShowBookingModal(true);
   };
 
   const handleBookAppointment = async () => {
-    if (!bookingData.patientName || !bookingData.patientPhone || 
-        !bookingData.patientAge || !bookingData.patientGender) {
-      toast.error('Please fill in all required patient information');
+    if (
+      !bookingData.patientName ||
+      !bookingData.patientPhone ||
+      !bookingData.patientAge ||
+      !bookingData.patientGender
+    ) {
+      toast.error("Please fill in all required patient information");
       return;
     }
 
     if (bookingData.patientAge < 1 || bookingData.patientAge > 150) {
-      toast.error('Please enter a valid age');
+      toast.error("Please enter a valid age");
       return;
     }
 
     // Validate required fields for backend
     if (!bookingData.doctorId || bookingData.doctorId <= 0) {
-      toast.error('Doctor ID is missing. Please select a slot again.');
+      toast.error("Doctor ID is missing. Please select a slot again.");
       return;
     }
 
     if (!bookingData.appointmentId || bookingData.appointmentId <= 0) {
-      toast.error('Appointment slot is missing. Please select a slot again.');
+      toast.error("Appointment slot is missing. Please select a slot again.");
       return;
     }
 
     try {
       setIsBooking(true);
-      
+
       // Prepare data for backend - ensure correct types
       // Only include fields that have values (don't send undefined)
       const requestData: any = {
@@ -217,7 +237,7 @@ const AssistantBookingPage: React.FC = () => {
         patientPhone: bookingData.patientPhone.trim(),
         patientAge: Number(bookingData.patientAge),
         patientGender: bookingData.patientGender.trim(),
-        patientType: bookingData.patientType || 'New',
+        patientType: bookingData.patientType || "New",
         isOldPatient: bookingData.isOldPatient || false,
         doctorFee: Number(bookingData.doctorFee),
         date: bookingData.date,
@@ -238,30 +258,33 @@ const AssistantBookingPage: React.FC = () => {
       if (bookingData.notes?.trim()) {
         requestData.notes = bookingData.notes.trim();
       }
-      
-      console.log('[AssistantBookingPage] Calling assistantBookingService.bookPatient with:', requestData);
+
+      console.log(
+        "[AssistantBookingPage] Calling assistantBookingService.bookPatient with:",
+        requestData
+      );
       const result = await assistantBookingService.bookPatient(requestData);
-      console.log('[AssistantBookingPage] Booking successful, result:', result);
-      toast.success('Appointment booked successfully!');
+      console.log("[AssistantBookingPage] Booking successful, result:", result);
+      toast.success("Appointment booked successfully!");
       setShowBookingModal(false);
       setSelectedSlot(null);
       setSelectedSlotUniqueId(null);
       setBookingData({
         doctorId: currentDoctorProfile?.id || 0,
         appointmentId: 0,
-        patientName: '',
-        patientEmail: '',
-        patientPhone: '',
+        patientName: "",
+        patientEmail: "",
+        patientPhone: "",
         patientAge: 0,
-        patientGender: '',
-        patientLocation: '',
-        patientType: 'New',
+        patientGender: "",
+        patientLocation: "",
+        patientType: "New",
         isOldPatient: false,
         doctorFee: currentDoctorProfile?.consultationFee || 0,
-        reasonForVisit: '',
-        notes: '',
+        reasonForVisit: "",
+        notes: "",
         date: selectedDate,
-        time: '',
+        time: "",
       });
       // Refresh slots
       if (currentDoctorProfile && selectedDate && selectedClinic) {
@@ -274,37 +297,41 @@ const AssistantBookingPage: React.FC = () => {
           );
           setAvailableSlots(slots);
         } catch (error: any) {
-          console.error('Failed to refresh slots:', error);
+          console.error("Failed to refresh slots:", error);
         } finally {
           setSlotsLoading(false);
         }
       }
     } catch (error: any) {
-      console.error('Booking error:', error);
-      
+      console.error("Booking error:", error);
+
       // Handle validation errors (400 Bad Request)
       if (error?.response?.status === 400) {
         const errorData = error.response.data;
-        let errorMessage = 'Validation failed: ';
-        
+        let errorMessage = "Validation failed: ";
+
         if (Array.isArray(errorData.message)) {
           // Backend validation errors array
-          errorMessage += errorData.message.join(', ');
-        } else if (typeof errorData.message === 'string') {
+          errorMessage += errorData.message.join(", ");
+        } else if (typeof errorData.message === "string") {
           errorMessage = errorData.message;
         } else if (errorData.message) {
           errorMessage = JSON.stringify(errorData.message);
         } else {
-          errorMessage = 'Please check all required fields are filled correctly';
+          errorMessage =
+            "Please check all required fields are filled correctly";
         }
-        
+
         toast.error(errorMessage);
-        console.error('Validation errors:', errorData);
+        console.error("Validation errors:", errorData);
       } else if (error?.response?.status === 403) {
-        console.error('403 Forbidden - Check user role in JWT token');
-        toast.error('Access denied. Please check your permissions.');
+        console.error("403 Forbidden - Check user role in JWT token");
+        toast.error("Access denied. Please check your permissions.");
       } else {
-        const errorMessage = error?.response?.data?.message || error?.message || 'Failed to book appointment';
+        const errorMessage =
+          error?.response?.data?.message ||
+          error?.message ||
+          "Failed to book appointment";
         toast.error(errorMessage);
       }
     } finally {
@@ -312,18 +339,18 @@ const AssistantBookingPage: React.FC = () => {
     }
   };
 
-  const filteredSlots = availableSlots.filter(slot => {
+  const filteredSlots = availableSlots.filter((slot) => {
     if (!selectedDate) return true;
-    const slotDate = new Date(slot.date).toISOString().split('T')[0];
+    const slotDate = new Date(slot.date).toISOString().split("T")[0];
     return slotDate === selectedDate;
   });
 
-  // Create individual slots for each available patient spot
+  // Create individual slots for each patient spot (both booked and available)
   const individualSlots = filteredSlots.flatMap((slot) => {
     const bookedTimes = slot.bookedTimes || [];
     const maxPatients = slot.maxPatients;
     const cards = [];
-    
+
     // Generate all possible positions (0 to maxPatients-1)
     for (let position = 0; position < maxPatients; position++) {
       // Calculate the time for this position
@@ -333,26 +360,25 @@ const AssistantBookingPage: React.FC = () => {
         position,
         maxPatients
       );
-      
+
       // Check if this time is already booked
       // Compare times in HH:MM format (normalize to handle slight variations)
-      const isBooked = bookedTimes.some(bookedTime => {
+      const isBooked = bookedTimes.some((bookedTime) => {
         // Normalize both times to HH:MM format for comparison
         const bookedTimeNormalized = bookedTime.substring(0, 5); // "HH:MM"
         const slotTimeNormalized = individualStartTime.substring(0, 5); // "HH:MM"
         return bookedTimeNormalized === slotTimeNormalized;
       });
-      
-      // Only include positions that are NOT booked
-      if (!isBooked) {
-        cards.push({
-          ...slot,
-          slotIndex: position + 1, // Position number (1, 2, 3, ...)
-          totalAvailable: maxPatients - bookedTimes.length,
-          individualStartTime, // Each card has its own calculated start time
-          uniqueId: `${slot.id}-${position}`, // Unique identifier for selection
-        });
-      }
+
+      // Include ALL positions (both booked and available)
+      cards.push({
+        ...slot,
+        slotIndex: position + 1, // Position number (1, 2, 3, ...)
+        totalAvailable: maxPatients - bookedTimes.length,
+        individualStartTime, // Each card has its own calculated start time
+        uniqueId: `${slot.id}-${position}`, // Unique identifier for selection
+        isBooked, // Mark if this slot is booked
+      });
     }
     return cards;
   });
@@ -361,8 +387,12 @@ const AssistantBookingPage: React.FC = () => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
-          <p className="text-gray-600">Only assistants can book appointments for patients.</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Access Denied
+          </h2>
+          <p className="text-gray-600">
+            Only assistants can book appointments for patients.
+          </p>
         </div>
       </div>
     );
@@ -391,7 +421,8 @@ const AssistantBookingPage: React.FC = () => {
               Book Appointment for Patient
             </h1>
             <p className="text-sm text-gray-600">
-              Doctor: Dr. {currentDoctorProfile.name} | Fee: ${currentDoctorProfile.consultationFee}
+              Doctor: Dr. {currentDoctorProfile.name} | Fee: $
+              {currentDoctorProfile.consultationFee}
             </p>
           </div>
         </motion.div>
@@ -415,7 +446,7 @@ const AssistantBookingPage: React.FC = () => {
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
                   className="w-full text-sm px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  min={new Date().toISOString().split('T')[0]}
+                  min={new Date().toISOString().split("T")[0]}
                 />
               </div>
               <div>
@@ -424,8 +455,12 @@ const AssistantBookingPage: React.FC = () => {
                   Select Clinic
                 </label>
                 <select
-                  value={selectedClinic || ''}
-                  onChange={(e) => setSelectedClinic(e.target.value ? Number(e.target.value) : null)}
+                  value={selectedClinic || ""}
+                  onChange={(e) =>
+                    setSelectedClinic(
+                      e.target.value ? Number(e.target.value) : null
+                    )
+                  }
                   className="w-full text-sm px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 >
                   <option value="">All Clinics</option>
@@ -459,8 +494,12 @@ const AssistantBookingPage: React.FC = () => {
             ) : individualSlots.length === 0 ? (
               <div className="text-center py-12">
                 <ClockIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600 font-medium">No available slots found</p>
-                <p className="text-sm text-gray-500 mt-2">Try selecting a different date or clinic</p>
+                <p className="text-gray-600 font-medium">
+                  No available slots found
+                </p>
+                <p className="text-sm text-gray-500 mt-2">
+                  Try selecting a different date or clinic
+                </p>
               </div>
             ) : (
               <div>
@@ -471,6 +510,7 @@ const AssistantBookingPage: React.FC = () => {
                 <div className="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-7 gap-2 max-h-[500px] overflow-y-auto">
                   {individualSlots.map((slot, index) => {
                     const isSelected = selectedSlotUniqueId === slot.uniqueId;
+                    const isBooked = slot.isBooked || false;
                     return (
                       <motion.button
                         key={slot.uniqueId}
@@ -478,18 +518,24 @@ const AssistantBookingPage: React.FC = () => {
                         initial={{ opacity: 0, y: 5 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.01 }}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => handleSlotSelect(slot)}
+                        whileHover={!isBooked ? { scale: 1.05 } : {}}
+                        whileTap={!isBooked ? { scale: 0.95 } : {}}
+                        onClick={() => !isBooked && handleSlotSelect(slot)}
+                        disabled={isBooked}
                         className={`
                           px-4 py-3 rounded-md transition-all duration-200 text-center font-medium border-2
-                          ${isSelected
-                            ? 'bg-green-700 text-yellow-200 shadow-lg ring-2 ring-green-500 border-green-500'
-                            : 'bg-green-800 text-yellow-200 border-green-800 hover:bg-white hover:text-black hover:border-green-500 hover:shadow-md'
+                          ${
+                            isBooked
+                              ? "bg-red-600 text-white border-red-600 cursor-not-allowed opacity-75"
+                              : isSelected
+                              ? "bg-green-700 text-yellow-200 shadow-lg ring-2 ring-green-500 border-green-500"
+                              : "bg-green-800 text-yellow-200 border-green-800 hover:bg-white hover:text-black hover:border-green-500 hover:shadow-md"
                           }
                         `}
                       >
-                        {formatTimeTo12Hour(slot.individualStartTime || slot.startTime)}
+                        {formatTimeTo12Hour(
+                          slot.individualStartTime || slot.startTime
+                        )}
                       </motion.button>
                     );
                   })}
@@ -500,8 +546,13 @@ const AssistantBookingPage: React.FC = () => {
         ) : (
           <div className="bg-white rounded-lg shadow-md p-12 text-center border border-gray-200">
             <CalendarIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Select Date and Clinic</h3>
-            <p className="text-sm text-gray-600">Please select a date and clinic to view available appointment slots</p>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">
+              Select Date and Clinic
+            </h3>
+            <p className="text-sm text-gray-600">
+              Please select a date and clinic to view available appointment
+              slots
+            </p>
           </div>
         )}
 
@@ -517,43 +568,68 @@ const AssistantBookingPage: React.FC = () => {
         >
           <div className="space-y-3">
             <div className="bg-primary-50 p-2 rounded-md mb-2">
-              <p className="text-xs font-medium text-gray-700 mb-0.5">Selected Slot:</p>
+              <p className="text-xs font-medium text-gray-700 mb-0.5">
+                Selected Slot:
+              </p>
               <p className="text-xs text-gray-600">
                 {selectedSlot && bookingData.time && (
                   <>
-                    {formatTimeTo12Hour(bookingData.time)} on {format(new Date(selectedSlot.date), 'MMM dd, yyyy')}
-                    {selectedSlot.clinic && ` at ${selectedSlot.clinic.locationName}`}
+                    {formatTimeTo12Hour(bookingData.time)} on{" "}
+                    {format(new Date(selectedSlot.date), "MMM dd, yyyy")}
+                    {selectedSlot.clinic &&
+                      ` at ${selectedSlot.clinic.locationName}`}
                   </>
                 )}
               </p>
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-0.5">Patient Name *</label>
+              <label className="block text-xs font-medium text-gray-700 mb-0.5">
+                Patient Name *
+              </label>
               <input
                 type="text"
                 value={bookingData.patientName}
-                onChange={(e) => setBookingData({ ...bookingData, patientName: e.target.value })}
+                onChange={(e) =>
+                  setBookingData({
+                    ...bookingData,
+                    patientName: e.target.value,
+                  })
+                }
                 className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-0.5">Email</label>
+                <label className="block text-xs font-medium text-gray-700 mb-0.5">
+                  Email
+                </label>
                 <input
                   type="email"
-                  value={bookingData.patientEmail || ''}
-                  onChange={(e) => setBookingData({ ...bookingData, patientEmail: e.target.value })}
+                  value={bookingData.patientEmail || ""}
+                  onChange={(e) =>
+                    setBookingData({
+                      ...bookingData,
+                      patientEmail: e.target.value,
+                    })
+                  }
                   className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-0.5">Phone *</label>
+                <label className="block text-xs font-medium text-gray-700 mb-0.5">
+                  Phone *
+                </label>
                 <input
                   type="tel"
                   value={bookingData.patientPhone}
-                  onChange={(e) => setBookingData({ ...bookingData, patientPhone: e.target.value })}
+                  onChange={(e) =>
+                    setBookingData({
+                      ...bookingData,
+                      patientPhone: e.target.value,
+                    })
+                  }
                   className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
@@ -561,24 +637,36 @@ const AssistantBookingPage: React.FC = () => {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-0.5">Age *</label>
+                <label className="block text-xs font-medium text-gray-700 mb-0.5">
+                  Age *
+                </label>
                 <input
                   type="number"
                   min="1"
                   max="150"
-                  value={bookingData.patientAge || ''}
+                  value={bookingData.patientAge || ""}
                   onChange={(e) => {
                     const age = parseInt(e.target.value, 10);
-                    setBookingData({ ...bookingData, patientAge: isNaN(age) ? 0 : age });
+                    setBookingData({
+                      ...bookingData,
+                      patientAge: isNaN(age) ? 0 : age,
+                    });
                   }}
                   className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-0.5">Gender *</label>
+                <label className="block text-xs font-medium text-gray-700 mb-0.5">
+                  Gender *
+                </label>
                 <select
                   value={bookingData.patientGender}
-                  onChange={(e) => setBookingData({ ...bookingData, patientGender: e.target.value })}
+                  onChange={(e) =>
+                    setBookingData({
+                      ...bookingData,
+                      patientGender: e.target.value,
+                    })
+                  }
                   className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 >
                   <option value="">Select Gender</option>
@@ -591,10 +679,17 @@ const AssistantBookingPage: React.FC = () => {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-0.5">Patient Type *</label>
+                <label className="block text-xs font-medium text-gray-700 mb-0.5">
+                  Patient Type *
+                </label>
                 <select
-                  value={bookingData.patientType || 'New'}
-                  onChange={(e) => setBookingData({ ...bookingData, patientType: e.target.value })}
+                  value={bookingData.patientType || "New"}
+                  onChange={(e) =>
+                    setBookingData({
+                      ...bookingData,
+                      patientType: e.target.value,
+                    })
+                  }
                   className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 >
                   <option value="New">New</option>
@@ -603,31 +698,49 @@ const AssistantBookingPage: React.FC = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-0.5">Location</label>
+                <label className="block text-xs font-medium text-gray-700 mb-0.5">
+                  Location
+                </label>
                 <input
                   type="text"
-                  value={bookingData.patientLocation || ''}
-                  onChange={(e) => setBookingData({ ...bookingData, patientLocation: e.target.value })}
+                  value={bookingData.patientLocation || ""}
+                  onChange={(e) =>
+                    setBookingData({
+                      ...bookingData,
+                      patientLocation: e.target.value,
+                    })
+                  }
                   className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-0.5">Reason for Visit</label>
+              <label className="block text-xs font-medium text-gray-700 mb-0.5">
+                Reason for Visit
+              </label>
               <textarea
-                value={bookingData.reasonForVisit || ''}
-                onChange={(e) => setBookingData({ ...bookingData, reasonForVisit: e.target.value })}
+                value={bookingData.reasonForVisit || ""}
+                onChange={(e) =>
+                  setBookingData({
+                    ...bookingData,
+                    reasonForVisit: e.target.value,
+                  })
+                }
                 rows={2}
                 className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-0.5">Notes</label>
+              <label className="block text-xs font-medium text-gray-700 mb-0.5">
+                Notes
+              </label>
               <textarea
-                value={bookingData.notes || ''}
-                onChange={(e) => setBookingData({ ...bookingData, notes: e.target.value })}
+                value={bookingData.notes || ""}
+                onChange={(e) =>
+                  setBookingData({ ...bookingData, notes: e.target.value })
+                }
                 rows={2}
                 className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
               />
@@ -635,13 +748,14 @@ const AssistantBookingPage: React.FC = () => {
 
             <div className="bg-yellow-50 p-2 rounded-md border border-yellow-200">
               <p className="text-xs text-gray-700">
-                <span className="font-medium">Consultation Fee:</span> ${bookingData.doctorFee}
+                <span className="font-medium">Consultation Fee:</span> $
+                {bookingData.doctorFee}
               </p>
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
-              <Button 
-                variant="secondary" 
+              <Button
+                variant="secondary"
                 onClick={() => {
                   setShowBookingModal(false);
                   setSelectedSlot(null);
@@ -650,8 +764,8 @@ const AssistantBookingPage: React.FC = () => {
               >
                 Cancel
               </Button>
-              <Button 
-                onClick={handleBookAppointment} 
+              <Button
+                onClick={handleBookAppointment}
                 disabled={isBooking}
                 className="text-xs px-3 py-1.5"
               >
@@ -676,4 +790,3 @@ const AssistantBookingPage: React.FC = () => {
 };
 
 export default AssistantBookingPage;
-

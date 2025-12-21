@@ -235,7 +235,7 @@ const GlobalDashboardPage: React.FC = () => {
     },
     {
       title: 'Total Revenue',
-      value: `$${stats.totalRevenue.toFixed(2)}`,
+      value: `৳${stats.totalRevenue.toFixed(2)}`,
       icon: CurrencyDollarIcon,
       color: 'from-warning-600 to-warning-700',
       bg: 'bg-warning-50',
@@ -497,7 +497,7 @@ const GlobalDashboardPage: React.FC = () => {
                       borderRadius: '8px',
                       fontSize: '12px'
                     }}
-                    formatter={(value: number) => `$${value.toFixed(2)}`}
+                    formatter={(value: number) => `৳${value.toFixed(2)}`}
                   />
                   <Bar dataKey="revenue" fill="#10B981" radius={[4, 4, 0, 0]} />
                 </BarChart>
@@ -731,7 +731,7 @@ const GlobalDashboardPage: React.FC = () => {
                               {appointment.doctorFee && (
                                 <>
                                   <span>|</span>
-                                  <span className="font-semibold text-gray-900">Fee: ${appointment.doctorFee}</span>
+                                  <span className="font-semibold text-gray-900">Fee: ৳{appointment.doctorFee}</span>
                                 </>
                               )}
                             </div>
@@ -781,7 +781,7 @@ const GlobalDashboardPage: React.FC = () => {
                             </div>
                             <div>
                               <p className="text-gray-600 mb-0.5">Revenue</p>
-                              <p className="text-base font-bold text-yellow-600">${doctor.totalRevenue.toFixed(2)}</p>
+                              <p className="text-base font-bold text-yellow-600">৳{doctor.totalRevenue.toFixed(2)}</p>
                             </div>
                           </div>
                         </motion.div>

@@ -148,11 +148,11 @@ const DoctorsPage: React.FC = () => {
   // Calculate fee distribution
   const feeData = useMemo(() => {
     const ranges = [
-      { name: '$0-100', min: 0, max: 100 },
-      { name: '$101-300', min: 101, max: 300 },
-      { name: '$301-500', min: 301, max: 500 },
-      { name: '$501-1000', min: 501, max: 1000 },
-      { name: '$1000+', min: 1001, max: 10000 },
+      { name: '৳0-100', min: 0, max: 100 },
+      { name: '৳101-300', min: 101, max: 300 },
+      { name: '৳301-500', min: 301, max: 500 },
+      { name: '৳501-1000', min: 501, max: 1000 },
+      { name: '৳1000+', min: 1001, max: 10000 },
     ];
     
     return ranges.map(range => ({
@@ -194,7 +194,7 @@ const DoctorsPage: React.FC = () => {
     },
     {
       title: 'Avg Consultation Fee',
-      value: `$${Math.round(doctors.reduce((acc, d) => acc + d.consultationFee, 0) / doctors.length || 0)}`,
+      value: `৳${Math.round(doctors.reduce((acc, d) => acc + d.consultationFee, 0) / doctors.length || 0)}`,
       icon: CurrencyDollarIcon,
       color: 'from-warning-600 to-warning-700',
       bg: 'bg-warning-50',

@@ -178,7 +178,7 @@ const EditDoctorForm: React.FC<EditDoctorFormProps> = ({
 
         <div>
           <label htmlFor="consultationFee" className="block text-sm font-medium text-gray-700 mb-2">
-            Consultation Fee ($) *
+            Consultation Fee (৳) *
           </label>
           <input
             {...register('consultationFee', { valueAsNumber: true })}

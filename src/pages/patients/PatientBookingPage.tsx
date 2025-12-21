@@ -693,7 +693,7 @@ const PatientBookingPage: React.FC = () => {
                             <div className="flex items-center justify-between pt-1 border-t border-gray-200">
                               <span className="text-xs text-gray-500">Fee:</span>
                               <p className="text-xs font-bold text-primary-600">
-                                ${doctor?.consultationFee || 'N/A'}
+                                ৳{doctor?.consultationFee || 'N/A'}
                               </p>
                             </div>
                           </div>

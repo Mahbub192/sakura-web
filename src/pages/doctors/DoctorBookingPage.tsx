@@ -344,7 +344,7 @@ const DoctorBookingPage: React.FC = () => {
               Book Appointment for Patient
             </h1>
             <p className="text-sm text-gray-600">
-              Doctor: Dr. {currentDoctorProfile.name} | Fee: ${currentDoctorProfile.consultationFee}
+              Doctor: Dr. {currentDoctorProfile.name} | Fee: ৳{currentDoctorProfile.consultationFee}
             </p>
           </div>
         </motion.div>

@@ -1181,7 +1181,7 @@ const DashboardPage: React.FC = () => {
                 <CurrencyDollarIcon className="h-5 w-5 text-orange-600" />
                 <span className="text-xs font-medium text-orange-700">Total Revenue</span>
               </div>
-              <p className="text-2xl font-bold text-orange-900">${globalStats.totalRevenue?.toFixed(0) || '0'}</p>
+              <p className="text-2xl font-bold text-orange-900">৳{globalStats.totalRevenue?.toFixed(0) || '0'}</p>
             </div>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">

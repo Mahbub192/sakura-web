@@ -91,7 +91,7 @@ const BookingForm: React.FC<BookingFormProps> = ({
           </div>
           <div className="flex items-center space-x-2">
             <CurrencyDollarIcon className="h-4 w-4 text-primary-600" />
-            <span>${appointment.doctor.consultationFee}</span>
+            <span>৳{appointment.doctor.consultationFee}</span>
           </div>
         </div>
       </div>
@@ -235,7 +235,7 @@ const BookingForm: React.FC<BookingFormProps> = ({
             <li>• Please arrive 15 minutes before your appointment time</li>
             <li>• Bring a valid ID and any relevant medical documents</li>
             <li>• Cancellations must be made at least 24 hours in advance</li>
-            <li>• Consultation fee: ${appointment.doctor.consultationFee}</li>
+            <li>• Consultation fee: ৳{appointment.doctor.consultationFee}</li>
           </ul>
         </div>
 

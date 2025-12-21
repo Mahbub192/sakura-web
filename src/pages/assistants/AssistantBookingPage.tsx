@@ -421,7 +421,7 @@ const AssistantBookingPage: React.FC = () => {
               Book Appointment for Patient
             </h1>
             <p className="text-sm text-gray-600">
-              Doctor: Dr. {currentDoctorProfile.name} | Fee: $
+              Doctor: Dr. {currentDoctorProfile.name} | Fee: ৳
               {currentDoctorProfile.consultationFee}
             </p>
           </div>
@@ -748,7 +748,7 @@ const AssistantBookingPage: React.FC = () => {
 
             <div className="bg-yellow-50 p-2 rounded-md border border-yellow-200">
               <p className="text-xs text-gray-700">
-                <span className="font-medium">Consultation Fee:</span> $
+                <span className="font-medium">Consultation Fee:</span> ৳
                 {bookingData.doctorFee}
               </p>
             </div>

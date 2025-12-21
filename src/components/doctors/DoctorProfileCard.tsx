@@ -82,7 +82,7 @@ const DoctorProfileCard: React.FC<DoctorProfileCardProps> = ({
             <CurrencyDollarIcon className="h-5 w-5 text-gray-400" />
             <div>
               <p className="text-sm text-gray-600">Consultation Fee</p>
-              <p className="font-medium text-gray-900">${doctor.consultationFee}</p>
+              <p className="font-medium text-gray-900">৳{doctor.consultationFee}</p>
             </div>
           </div>
         </div>

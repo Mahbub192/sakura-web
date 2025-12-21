@@ -604,7 +604,7 @@ const AppointmentsPage: React.FC = () => {
                     </span>
                           </td>
                           <td className="px-2 sm:px-4 py-3 whitespace-nowrap text-xs sm:text-sm font-semibold text-gray-900 dark:text-white hidden lg:table-cell">
-                            ${appointment.doctor?.consultationFee || '0.00'}
+                            ৳{appointment.doctor?.consultationFee || '0.00'}
                           </td>
                         </tr>
                         {isExpanded && slotPatients.length > 0 && (

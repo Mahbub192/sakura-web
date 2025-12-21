@@ -91,7 +91,7 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
         
         <div className="flex items-center gap-1.5 text-xs text-gray-600">
           <CurrencyDollarIcon className="h-3.5 w-3.5 text-primary-500 flex-shrink-0" />
-          <span className="font-semibold text-gray-900">${appointment.doctor?.consultationFee || '0.00'}</span>
+          <span className="font-semibold text-gray-900">৳{appointment.doctor?.consultationFee || '0.00'}</span>
         </div>
       </div>
 

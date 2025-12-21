@@ -1,24 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { format } from 'date-fns';
-import { 
-  CalendarIcon,
-  ClockIcon,
+import {
   BuildingOfficeIcon,
+  CalendarIcon,
   CheckCircleIcon,
-  UsersIcon,
-  AcademicCapIcon,
+  ClockIcon
 } from '@heroicons/react/24/outline';
+import { format } from 'date-fns';
+import { motion } from 'framer-motion';
+import React, { useEffect, useState } from 'react';
+import { toast } from 'react-toastify';
+import Button from '../../components/ui/Button';
+import LoadingSpinner from '../../components/ui/LoadingSpinner';
+import Modal from '../../components/ui/Modal';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { useAuth } from '../../hooks/useAuth';
-import { fetchClinics } from '../../store/slices/clinicSlice';
-import { fetchCurrentDoctorProfile } from '../../store/slices/doctorSlice';
 import { assistantBookingService, CreatePatientBookingRequest } from '../../services/assistantBookingService';
 import { fetchAvailableSlots } from '../../store/slices/appointmentSlice';
-import Button from '../../components/ui/Button';
-import Modal from '../../components/ui/Modal';
-import LoadingSpinner from '../../components/ui/LoadingSpinner';
-import { toast } from 'react-toastify';
+import { fetchClinics } from '../../store/slices/clinicSlice';
+import { fetchCurrentDoctorProfile } from '../../store/slices/doctorSlice';
 import { Appointment } from '../../types';
 
 // Helper function to convert 24-hour time to 12-hour AM/PM format
@@ -49,7 +47,7 @@ const timeToMinutes = (timeStr: string): number => {
 // Helper function to format minutes to time string (HH:MM)
 const minutesToTime = (totalMinutes: number): string => {
   const hours = Math.floor(totalMinutes / 60) % 24;
-  const minutes = totalMinutes % 60;
+  const minutes = Math.floor(totalMinutes % 60);
   return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
 };
 
@@ -275,37 +273,32 @@ const DoctorBookingPage: React.FC = () => {
   const individualSlots = filteredSlots.flatMap((slot) => {
     const bookedTimes = slot.bookedTimes || [];
     const maxPatients = slot.maxPatients;
-    const cards = [];
-    
+    const cards: any[] = [];
+
     // Generate all possible positions (0 to maxPatients-1)
     for (let position = 0; position < maxPatients; position++) {
-      // Calculate the time for this position
       const individualStartTime = calculatePatientSlotTime(
         slot.startTime,
         slot.endTime || slot.startTime,
         position,
         maxPatients
       );
-      
-      // Check if this time is already booked
-      // Compare times in HH:MM format (normalize to handle slight variations)
-      const isBooked = bookedTimes.some(bookedTime => {
-        // Normalize both times to HH:MM format for comparison
-        const bookedTimeNormalized = bookedTime.substring(0, 5); // "HH:MM"
-        const slotTimeNormalized = individualStartTime.substring(0, 5); // "HH:MM"
+
+      const isBooked = bookedTimes.some((bookedTime) => {
+        const bookedTimeNormalized = bookedTime.substring(0, 5);
+        const slotTimeNormalized = individualStartTime.substring(0, 5);
         return bookedTimeNormalized === slotTimeNormalized;
       });
-      
-      // Only include positions that are NOT booked
-      if (!isBooked) {
-        cards.push({
-          ...slot,
-          slotIndex: position + 1, // Position number (1, 2, 3, ...)
-          totalAvailable: maxPatients - bookedTimes.length,
-          individualStartTime, // Each card has its own calculated start time
-          uniqueId: `${slot.id}-${position}`, // Unique identifier for selection
-        });
-      }
+
+      // Include ALL positions (both booked and available), mark booked ones
+      cards.push({
+        ...slot,
+        slotIndex: position + 1,
+        totalAvailable: Math.max(0, maxPatients - bookedTimes.length),
+        individualStartTime,
+        uniqueId: `${slot.id}-${position}`,
+        isBooked,
+      });
     }
     return cards;
   });
@@ -421,9 +414,10 @@ const DoctorBookingPage: React.FC = () => {
                   <ClockIcon className="h-4 w-4 text-primary-600" />
                   Time Slots <span className="text-red-500">*</span>
                 </label>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-[500px] overflow-y-auto">
+                <div className="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-7 gap-2 max-h-[500px] overflow-y-auto">
                   {individualSlots.map((slot, index) => {
                     const isSelected = selectedSlotUniqueId === slot.uniqueId;
+                    const isBooked = slot.isBooked || false;
                     return (
                       <motion.button
                         key={slot.uniqueId}
@@ -431,64 +425,22 @@ const DoctorBookingPage: React.FC = () => {
                         initial={{ opacity: 0, y: 5 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.01 }}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => handleSlotSelect(slot)}
+                        whileHover={!isBooked ? { scale: 1.05 } : {}}
+                        whileTap={!isBooked ? { scale: 0.95 } : {}}
+                        onClick={() => !isBooked && handleSlotSelect(slot)}
+                        disabled={isBooked}
                         className={`
-                          p-3 rounded-lg border-2 transition-all duration-200 text-left relative min-h-[120px] w-full
-                          ${isSelected
-                            ? 'border-primary-500 bg-gradient-to-br from-primary-50 to-primary-100 shadow-lg ring-2 ring-primary-300'
-                            : 'border-gray-200 hover:border-primary-300 bg-white hover:shadow-md'
+                          px-4 py-3 rounded-md transition-all duration-200 text-center font-medium border-2
+                          ${
+                            isBooked
+                              ? "bg-red-600 text-white border-red-600 cursor-not-allowed opacity-75"
+                              : isSelected
+                              ? "bg-green-700 text-yellow-200 shadow-lg ring-2 ring-green-500 border-green-500"
+                              : "bg-green-800 text-yellow-200 border-green-800 hover:bg-white hover:text-black hover:border-green-500 hover:shadow-md"
                           }
                         `}
                       >
-                        {isSelected && (
-                          <div className="absolute top-1 right-1">
-                            <CheckCircleIcon className="h-3.5 w-3.5 text-primary-600" />
-                          </div>
-                        )}
-                        <div className="space-y-1.5">
-                          {/* Start Time - Prominent */}
-                          <div className="bg-gradient-to-r from-primary-50 to-secondary-50 rounded-md p-2 mb-1.5">
-                            <div className="flex items-center gap-1.5">
-                              <ClockIcon className="h-4 w-4 text-primary-600" />
-                              <p className={`text-xs font-bold ${isSelected ? 'text-primary-900' : 'text-gray-900'}`}>
-                                {formatTimeTo12Hour(slot.individualStartTime || slot.startTime)}
-                              </p>
-                            </div>
-                          </div>
-                          
-                          {/* Patient Info */}
-                          <div className="flex items-center justify-between bg-primary-50 rounded-md px-2 py-1.5 border border-primary-200">
-                            <div className="flex items-center gap-1.5">
-                              <UsersIcon className="h-3.5 w-3.5 text-primary-600" />
-                              <span className="text-xs text-gray-600 font-medium">Patient:</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <span className="text-xs font-bold text-green-600">
-                                {slot.slotIndex}
-                              </span>
-                              <span className="text-xs text-gray-400">/</span>
-                              <span className="text-xs font-bold text-gray-700">
-                                {slot.totalAvailable}
-                              </span>
-                            </div>
-                          </div>
-                          
-                          {/* Doctor Name */}
-                          <div className="flex items-center gap-1">
-                            <AcademicCapIcon className="h-3 w-3 text-gray-500" />
-                            <p className="text-xs text-gray-600 truncate">Dr. {currentDoctorProfile?.name?.split(' ')[0] || 'Unknown'}</p>
-                          </div>
-                          
-                          {/* Price */}
-                          <div className="flex items-center justify-between pt-1 border-t border-gray-200">
-                            <span className="text-xs text-gray-500">Fee:</span>
-                            <p className="text-xs font-bold text-primary-600">
-                              ${currentDoctorProfile?.consultationFee || 'N/A'}
-                            </p>
-                          </div>
-                        </div>
+                        {formatTimeTo12Hour(slot.individualStartTime || slot.startTime)}
                       </motion.button>
                     );
                   })}

@@ -39,10 +39,12 @@ export const assistantBookingService = {
   },
 
   // Get available slots for assistant's doctor
-  async getAvailableSlots(doctorId: number, date: string): Promise<Appointment[]> {
-    const response = await api.get('/assistant-booking/available-slots', {
-      params: { doctorId, date },
-    });
+  async getAvailableSlots(doctorId: number, date: string, clinicId?: number): Promise<Appointment[]> {
+    const params: any = { doctorId, date };
+    if (clinicId) {
+      params.clinicId = clinicId;
+    }
+    const response = await api.get('/assistant-booking/available-slots', { params });
     return response.data;
   },
 

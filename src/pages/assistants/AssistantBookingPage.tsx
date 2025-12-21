@@ -20,7 +20,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { fetchClinics } from '../../store/slices/clinicSlice';
 import { fetchCurrentDoctorProfile } from '../../store/slices/doctorSlice';
 import { assistantBookingService, CreatePatientBookingRequest } from '../../services/assistantBookingService';
-import { fetchAvailableSlots } from '../../store/slices/appointmentSlice';
+// Removed fetchAvailableSlots import - using assistant-specific service instead
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
@@ -78,8 +78,9 @@ const AssistantBookingPage: React.FC = () => {
   console.log('[AssistantBookingPage] Component rendered, isAssistant:', isAssistant, 'user:', user);
   const { clinics } = useAppSelector(state => state.clinics);
   const { currentDoctorProfile } = useAppSelector(state => state.doctors);
-  const { availableSlots, isLoading: slotsLoading } = useAppSelector(state => state.appointments);
   
+  const [availableSlots, setAvailableSlots] = useState<Appointment[]>([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedClinic, setSelectedClinic] = useState<number | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<Appointment | null>(null);
@@ -112,14 +113,30 @@ const AssistantBookingPage: React.FC = () => {
   }, [dispatch, isAssistant]);
 
   useEffect(() => {
-    if (currentDoctorProfile && selectedDate && selectedClinic) {
-      dispatch(fetchAvailableSlots({
-        doctorId: currentDoctorProfile.id,
-        date: selectedDate,
-        clinicId: selectedClinic,
-      }));
-    }
-  }, [dispatch, currentDoctorProfile, selectedDate, selectedClinic]);
+    const fetchSlots = async () => {
+      if (currentDoctorProfile && selectedDate && selectedClinic) {
+        setSlotsLoading(true);
+        try {
+          const slots = await assistantBookingService.getAvailableSlots(
+            currentDoctorProfile.id,
+            selectedDate,
+            selectedClinic
+          );
+          setAvailableSlots(slots);
+        } catch (error: any) {
+          console.error('Failed to fetch available slots:', error);
+          toast.error(error?.response?.data?.message || 'Failed to fetch available slots');
+          setAvailableSlots([]);
+        } finally {
+          setSlotsLoading(false);
+        }
+      } else {
+        setAvailableSlots([]);
+      }
+    };
+
+    fetchSlots();
+  }, [currentDoctorProfile, selectedDate, selectedClinic]);
 
   useEffect(() => {
     if (currentDoctorProfile) {
@@ -232,11 +249,19 @@ const AssistantBookingPage: React.FC = () => {
       });
       // Refresh slots
       if (currentDoctorProfile && selectedDate && selectedClinic) {
-        dispatch(fetchAvailableSlots({
-          doctorId: currentDoctorProfile.id,
-          date: selectedDate,
-          clinicId: selectedClinic,
-        }));
+        setSlotsLoading(true);
+        try {
+          const slots = await assistantBookingService.getAvailableSlots(
+            currentDoctorProfile.id,
+            selectedDate,
+            selectedClinic
+          );
+          setAvailableSlots(slots);
+        } catch (error: any) {
+          console.error('Failed to refresh slots:', error);
+        } finally {
+          setSlotsLoading(false);
+        }
       }
     } catch (error: any) {
       console.error('Booking error:', error);

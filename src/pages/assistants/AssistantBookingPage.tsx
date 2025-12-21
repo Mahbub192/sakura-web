@@ -12,8 +12,6 @@ import {
   BuildingOfficeIcon,
   MagnifyingGlassIcon,
   CheckCircleIcon,
-  UsersIcon,
-  AcademicCapIcon,
 } from '@heroicons/react/24/outline';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { useAuth } from '../../hooks/useAuth';
@@ -32,7 +30,10 @@ const formatTimeTo12Hour = (time24: string): string => {
   if (!time24) return '';
   const [hours, minutes] = time24.split(':');
   const hour24 = parseInt(hours, 10);
-  const mins = minutes || '00';
+  
+  // Get floor value of minutes (remove decimal places)
+  const minsFloat = parseFloat(minutes || '0');
+  const mins = Math.floor(minsFloat).toString().padStart(2, '0');
   
   if (hour24 === 0) {
     return `12:${mins} AM`;
@@ -55,7 +56,7 @@ const timeToMinutes = (timeStr: string): number => {
 // Helper function to format minutes to time string (HH:MM)
 const minutesToTime = (totalMinutes: number): string => {
   const hours = Math.floor(totalMinutes / 60) % 24;
-  const minutes = totalMinutes % 60;
+  const minutes = Math.floor(totalMinutes % 60); // Use floor to remove decimal places
   return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
 };
 
@@ -97,6 +98,7 @@ const AssistantBookingPage: React.FC = () => {
     patientAge: 0,
     patientGender: '',
     patientLocation: '',
+    patientType: 'New',
     isOldPatient: false,
     doctorFee: 0,
     reasonForVisit: '',
@@ -181,7 +183,7 @@ const AssistantBookingPage: React.FC = () => {
   };
 
   const handleBookAppointment = async () => {
-    if (!bookingData.patientName || !bookingData.patientEmail || !bookingData.patientPhone || 
+    if (!bookingData.patientName || !bookingData.patientPhone || 
         !bookingData.patientAge || !bookingData.patientGender) {
       toast.error('Please fill in all required patient information');
       return;
@@ -207,22 +209,35 @@ const AssistantBookingPage: React.FC = () => {
       setIsBooking(true);
       
       // Prepare data for backend - ensure correct types
-      const requestData = {
+      // Only include fields that have values (don't send undefined)
+      const requestData: any = {
         doctorId: Number(bookingData.doctorId),
         appointmentId: Number(bookingData.appointmentId),
         patientName: bookingData.patientName.trim(),
-        patientEmail: bookingData.patientEmail.trim(),
         patientPhone: bookingData.patientPhone.trim(),
         patientAge: Number(bookingData.patientAge),
         patientGender: bookingData.patientGender.trim(),
-        patientLocation: bookingData.patientLocation?.trim() || undefined,
+        patientType: bookingData.patientType || 'New',
         isOldPatient: bookingData.isOldPatient || false,
         doctorFee: Number(bookingData.doctorFee),
         date: bookingData.date,
         time: bookingData.time,
-        reasonForVisit: bookingData.reasonForVisit?.trim() || undefined,
-        notes: bookingData.notes?.trim() || undefined,
       };
+
+      // Only add optional fields if they have values
+      const trimmedEmail = bookingData.patientEmail?.trim();
+      if (trimmedEmail && trimmedEmail.length > 0) {
+        requestData.patientEmail = trimmedEmail;
+      }
+      if (bookingData.patientLocation?.trim()) {
+        requestData.patientLocation = bookingData.patientLocation.trim();
+      }
+      if (bookingData.reasonForVisit?.trim()) {
+        requestData.reasonForVisit = bookingData.reasonForVisit.trim();
+      }
+      if (bookingData.notes?.trim()) {
+        requestData.notes = bookingData.notes.trim();
+      }
       
       console.log('[AssistantBookingPage] Calling assistantBookingService.bookPatient with:', requestData);
       const result = await assistantBookingService.bookPatient(requestData);
@@ -240,6 +255,7 @@ const AssistantBookingPage: React.FC = () => {
         patientAge: 0,
         patientGender: '',
         patientLocation: '',
+        patientType: 'New',
         isOldPatient: false,
         doctorFee: currentDoctorProfile?.consultationFee || 0,
         reasonForVisit: '',
@@ -452,7 +468,7 @@ const AssistantBookingPage: React.FC = () => {
                   <ClockIcon className="h-4 w-4 text-primary-600" />
                   Time Slots <span className="text-red-500">*</span>
                 </label>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-[500px] overflow-y-auto">
+                <div className="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-7 gap-2 max-h-[500px] overflow-y-auto">
                   {individualSlots.map((slot, index) => {
                     const isSelected = selectedSlotUniqueId === slot.uniqueId;
                     return (
@@ -466,60 +482,14 @@ const AssistantBookingPage: React.FC = () => {
                         whileTap={{ scale: 0.95 }}
                         onClick={() => handleSlotSelect(slot)}
                         className={`
-                          p-3 rounded-lg border-2 transition-all duration-200 text-left relative min-h-[120px] w-full
+                          px-4 py-3 rounded-md transition-all duration-200 text-center font-medium border-2
                           ${isSelected
-                            ? 'border-primary-500 bg-gradient-to-br from-primary-50 to-primary-100 shadow-lg ring-2 ring-primary-300'
-                            : 'border-gray-200 hover:border-primary-300 bg-white hover:shadow-md'
+                            ? 'bg-green-700 text-yellow-200 shadow-lg ring-2 ring-green-500 border-green-500'
+                            : 'bg-green-800 text-yellow-200 border-green-800 hover:bg-white hover:text-black hover:border-green-500 hover:shadow-md'
                           }
                         `}
                       >
-                        {isSelected && (
-                          <div className="absolute top-1 right-1">
-                            <CheckCircleIcon className="h-3.5 w-3.5 text-primary-600" />
-                          </div>
-                        )}
-                        <div className="space-y-1.5">
-                          {/* Start Time - Prominent */}
-                          <div className="bg-gradient-to-r from-primary-50 to-secondary-50 rounded-md p-2 mb-1.5">
-                            <div className="flex items-center gap-1.5">
-                              <ClockIcon className="h-4 w-4 text-primary-600" />
-                              <p className={`text-xs font-bold ${isSelected ? 'text-primary-900' : 'text-gray-900'}`}>
-                                {formatTimeTo12Hour(slot.individualStartTime || slot.startTime)}
-                              </p>
-                            </div>
-                          </div>
-                          
-                          {/* Patient Info */}
-                          <div className="flex items-center justify-between bg-primary-50 rounded-md px-2 py-1.5 border border-primary-200">
-                            <div className="flex items-center gap-1.5">
-                              <UsersIcon className="h-3.5 w-3.5 text-primary-600" />
-                              <span className="text-xs text-gray-600 font-medium">Patient:</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <span className="text-xs font-bold text-green-600">
-                                {slot.slotIndex}
-                              </span>
-                              <span className="text-xs text-gray-400">/</span>
-                              <span className="text-xs font-bold text-gray-700">
-                                {slot.totalAvailable}
-                              </span>
-                            </div>
-                          </div>
-                          
-                          {/* Doctor Name */}
-                          <div className="flex items-center gap-1">
-                            <AcademicCapIcon className="h-3 w-3 text-gray-500" />
-                            <p className="text-xs text-gray-600 truncate">Dr. {currentDoctorProfile?.name?.split(' ')[0] || 'Unknown'}</p>
-                          </div>
-                          
-                          {/* Price */}
-                          <div className="flex items-center justify-between pt-1 border-t border-gray-200">
-                            <span className="text-xs text-gray-500">Fee:</span>
-                            <p className="text-xs font-bold text-primary-600">
-                              ${currentDoctorProfile?.consultationFee || 'N/A'}
-                            </p>
-                          </div>
-                        </div>
+                        {formatTimeTo12Hour(slot.individualStartTime || slot.startTime)}
                       </motion.button>
                     );
                   })}
@@ -570,10 +540,10 @@ const AssistantBookingPage: React.FC = () => {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-0.5">Email *</label>
+                <label className="block text-xs font-medium text-gray-700 mb-0.5">Email</label>
                 <input
                   type="email"
-                  value={bookingData.patientEmail}
+                  value={bookingData.patientEmail || ''}
                   onChange={(e) => setBookingData({ ...bookingData, patientEmail: e.target.value })}
                   className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
@@ -619,27 +589,28 @@ const AssistantBookingPage: React.FC = () => {
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-0.5">Location</label>
-              <input
-                type="text"
-                value={bookingData.patientLocation || ''}
-                onChange={(e) => setBookingData({ ...bookingData, patientLocation: e.target.value })}
-                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
-            </div>
-
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="isOldPatient"
-                checked={bookingData.isOldPatient}
-                onChange={(e) => setBookingData({ ...bookingData, isOldPatient: e.target.checked })}
-                className="h-3.5 w-3.5 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-              />
-              <label htmlFor="isOldPatient" className="text-xs text-gray-700">
-                Is this a returning patient?
-              </label>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-0.5">Patient Type *</label>
+                <select
+                  value={bookingData.patientType || 'New'}
+                  onChange={(e) => setBookingData({ ...bookingData, patientType: e.target.value })}
+                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="New">New</option>
+                  <option value="Old">Old</option>
+                  <option value="OT">OT</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-0.5">Location</label>
+                <input
+                  type="text"
+                  value={bookingData.patientLocation || ''}
+                  onChange={(e) => setBookingData({ ...bookingData, patientLocation: e.target.value })}
+                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
             </div>
 
             <div>

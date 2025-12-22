@@ -13,7 +13,8 @@ import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import Modal from '../../components/ui/Modal';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { useAuth } from '../../hooks/useAuth';
-import { assistantBookingService, CreatePatientBookingRequest } from '../../services/assistantBookingService';
+import { CreatePatientBookingRequest } from '../../services/assistantBookingService';
+import { doctorBookingService } from '../../services/doctorBookingService';
 import { fetchAvailableSlots } from '../../store/slices/appointmentSlice';
 import { fetchClinics } from '../../store/slices/clinicSlice';
 import { fetchCurrentDoctorProfile } from '../../store/slices/doctorSlice';
@@ -88,6 +89,7 @@ const DoctorBookingPage: React.FC = () => {
     patientAge: 0,
     patientGender: '',
     patientLocation: '',
+    patientType: 'New',
     isOldPatient: false,
     doctorFee: 0,
     reasonForVisit: '',
@@ -156,7 +158,7 @@ const DoctorBookingPage: React.FC = () => {
   };
 
   const handleBookAppointment = async () => {
-    if (!bookingData.patientName || !bookingData.patientEmail || !bookingData.patientPhone || 
+    if (!bookingData.patientName || !bookingData.patientPhone || 
         !bookingData.patientAge || !bookingData.patientGender) {
       toast.error('Please fill in all required patient information');
       return;
@@ -182,14 +184,15 @@ const DoctorBookingPage: React.FC = () => {
       setIsBooking(true);
       
       // Prepare data for backend - ensure correct types
-      const requestData = {
+      const requestData: any = {
         doctorId: Number(bookingData.doctorId),
         appointmentId: Number(bookingData.appointmentId),
         patientName: bookingData.patientName.trim(),
-        patientEmail: bookingData.patientEmail.trim(),
+        // patientEmail is optional and will be added below if provided
         patientPhone: bookingData.patientPhone.trim(),
         patientAge: Number(bookingData.patientAge),
         patientGender: bookingData.patientGender.trim(),
+        patientType: bookingData.patientType || 'New',
         patientLocation: bookingData.patientLocation?.trim() || undefined,
         isOldPatient: bookingData.isOldPatient || false,
         doctorFee: Number(bookingData.doctorFee),
@@ -198,9 +201,14 @@ const DoctorBookingPage: React.FC = () => {
         reasonForVisit: bookingData.reasonForVisit?.trim() || undefined,
         notes: bookingData.notes?.trim() || undefined,
       };
+
+      const trimmedEmail = bookingData.patientEmail?.trim();
+      if (trimmedEmail && trimmedEmail.length > 0) {
+        requestData.patientEmail = trimmedEmail;
+      }
       
-      console.log('[DoctorBookingPage] Calling assistantBookingService.bookPatient with:', requestData);
-      const result = await assistantBookingService.bookPatient(requestData);
+      console.log('[DoctorBookingPage] Calling doctorBookingService.bookPatient with:', requestData);
+      const result = await doctorBookingService.bookPatient(requestData);
       console.log('[DoctorBookingPage] Booking successful, result:', result);
       toast.success('Appointment booked successfully!');
       setShowBookingModal(false);
@@ -456,7 +464,7 @@ const DoctorBookingPage: React.FC = () => {
           </div>
         )}
 
-        {/* Booking Modal */}
+        {/* Booking Modal (assistant-style) */}
         <Modal
           isOpen={showBookingModal}
           onClose={() => {
@@ -491,10 +499,10 @@ const DoctorBookingPage: React.FC = () => {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-0.5">Email *</label>
+                <label className="block text-xs font-medium text-gray-700 mb-0.5">Email</label>
                 <input
                   type="email"
-                  value={bookingData.patientEmail}
+                  value={bookingData.patientEmail || ''}
                   onChange={(e) => setBookingData({ ...bookingData, patientEmail: e.target.value })}
                   className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
@@ -540,14 +548,28 @@ const DoctorBookingPage: React.FC = () => {
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-0.5">Location</label>
-              <input
-                type="text"
-                value={bookingData.patientLocation || ''}
-                onChange={(e) => setBookingData({ ...bookingData, patientLocation: e.target.value })}
-                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-0.5">Patient Type *</label>
+                <select
+                  value={bookingData.patientType || 'New'}
+                  onChange={(e) => setBookingData({ ...bookingData, patientType: e.target.value })}
+                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="New">New</option>
+                  <option value="Old">Old</option>
+                  <option value="OT">OT</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-0.5">Location</label>
+                <input
+                  type="text"
+                  value={bookingData.patientLocation || ''}
+                  onChange={(e) => setBookingData({ ...bookingData, patientLocation: e.target.value })}
+                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
             </div>
 
             <div className="flex items-center gap-2">
@@ -585,7 +607,7 @@ const DoctorBookingPage: React.FC = () => {
 
             <div className="bg-yellow-50 p-2 rounded-md border border-yellow-200">
               <p className="text-xs text-gray-700">
-                <span className="font-medium">Consultation Fee:</span> ${bookingData.doctorFee}
+                <span className="font-medium">Consultation Fee:</span> ৳{bookingData.doctorFee}
               </p>
             </div>
 

@@ -1,14 +1,15 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { format } from 'date-fns';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import { io, Socket } from 'socket.io-client';
+import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { useAuth } from '../../hooks/useAuth';
-import { fetchTokenAppointments } from '../../store/slices/appointmentSlice';
+import { fetchTokenAppointments, updateTokenAppointmentStatus } from '../../store/slices/appointmentSlice';
 import { fetchClinics } from '../../store/slices/clinicSlice';
-import { fetchDoctors, fetchCurrentDoctorProfile } from '../../store/slices/doctorSlice';
-import LoadingSpinner from '../../components/ui/LoadingSpinner';
-import { toast } from 'react-toastify';
-import { TokenAppointment, Doctor } from '../../types';
+import { fetchCurrentDoctorProfile, fetchDoctors } from '../../store/slices/doctorSlice';
+import { Doctor, TokenAppointment } from '../../types';
 
 // Helper function to convert 24-hour time to 12-hour AM/PM format
 const formatTimeTo12Hour = (time24: string): string => {
@@ -47,6 +48,8 @@ const LivePatientPage: React.FC = () => {
   const [currentServingIndex, setCurrentServingIndex] = useState<number>(-1); // Current serving patient index
   const [playingVideoIds, setPlayingVideoIds] = useState<Set<number>>(new Set()); // Currently playing video IDs (multiple)
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false); // Fullscreen state
+  const [chamberRunning, setChamberRunning] = useState<boolean>(false);
+  const socketRef = React.useRef<Socket | null>(null);
 
   // Get initial filters from URL params
   useEffect(() => {
@@ -83,6 +86,72 @@ const LivePatientPage: React.FC = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedLocation, selectedDate, selectedDoctorFilter]);
+
+  // Setup socket connection for live updates
+  useEffect(() => {
+    // determine backend URL from api base
+    const apiUrl = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://sakura-backend-t4mg.onrender.com' : 'http://localhost:3000');
+    const namespaceUrl = `${apiUrl.replace(/\/$/, '')}/live-patients`;
+
+    const token = localStorage.getItem('token');
+    const socket = io(namespaceUrl, {
+      auth: token ? { token } : undefined,
+      transports: ['websocket', 'polling'],
+    });
+
+    socket.on('connect', () => {
+      console.log('Connected to live-patients socket', socket.id);
+      // join clinic/doctor rooms if available
+      const clinicId = selectedLocation || undefined;
+      const doctorId = selectedDoctor?.id || (currentDoctorProfile?.id || undefined);
+      socket.emit('join', { clinicId, doctorId });
+    });
+
+    socket.on('token_updated', (payload: TokenAppointment) => {
+      // Update the filteredPatients list if matches clinic/date
+      // Simple approach: refetch current filters
+      if (selectedLocation && selectedDate) {
+        handleFilter();
+      }
+    });
+
+    socket.on('control', (data: any) => {
+      // control events: { action, clinicId, doctorId, currentIndex }
+      if (data?.clinicId && Number(data.clinicId) !== Number(selectedLocation)) return;
+      if (data.action === 'start') {
+        setChamberRunning(true);
+        if (typeof data.currentIndex === 'number') setCurrentServingIndex(data.currentIndex);
+      } else if (data.action === 'pause') {
+        setChamberRunning(false);
+      } else if (data.action === 'end') {
+        setChamberRunning(false);
+        setCurrentServingIndex(-1);
+      } else if (data.action === 'next') {
+        if (typeof data.currentIndex === 'number') setCurrentServingIndex(data.currentIndex);
+      }
+    });
+
+    socket.on('error', (err: any) => {
+      console.error('Live socket error', err);
+    });
+
+    socketRef.current = socket;
+
+    return () => {
+      try { socket.disconnect(); } catch (e) {}
+      socketRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedLocation, selectedDoctor, currentDoctorProfile, selectedDate]);
+
+  // When chamberRunning is enabled, ensure there's a serving patient
+  useEffect(() => {
+    if (chamberRunning && filteredPatients.length > 0) {
+      if (currentServingIndex < 0) {
+        setCurrentServingIndex(0);
+      }
+    }
+  }, [chamberRunning, filteredPatients, currentServingIndex]);
 
   const handleFilter = async () => {
     if (!selectedLocation || !selectedDate) {
@@ -137,6 +206,108 @@ const LivePatientPage: React.FC = () => {
 
   const handleViewPatient = (patient: TokenAppointment) => {
     navigate(`/patients/view?token=${patient.tokenNumber}`);
+  };
+
+  const handleStartChamber = () => {
+    if (filteredPatients.length === 0) {
+      toast.warning('No patients to serve.');
+      return;
+    }
+    setChamberRunning(true);
+    if (currentServingIndex < 0) setCurrentServingIndex(0);
+    // Play start beep
+    playBeep();
+    // notify display clients
+    try {
+      socketRef.current?.emit('control', { action: 'start', clinicId: selectedLocation, doctorId: selectedDoctor?.id, currentIndex: currentServingIndex >= 0 ? currentServingIndex : 0 });
+    } catch (e) {}
+  };
+
+  const handlePauseChamber = () => {
+    setChamberRunning(false);
+    try { socketRef.current?.emit('control', { action: 'pause', clinicId: selectedLocation, doctorId: selectedDoctor?.id }); } catch (e) {}
+  };
+
+  const handleEndChamber = async () => {
+    setChamberRunning(false);
+    if (currentServingIndex >= 0 && filteredPatients[currentServingIndex]) {
+      const current = filteredPatients[currentServingIndex];
+      try {
+        await dispatch(updateTokenAppointmentStatus({ id: current.id, status: 'Completed' }));
+      } catch (err) {
+        console.error('Failed to end current patient:', err);
+      }
+    }
+    setCurrentServingIndex(-1);
+    try { socketRef.current?.emit('control', { action: 'end', clinicId: selectedLocation, doctorId: selectedDoctor?.id }); } catch (e) {}
+  };
+
+  const handleNextPatient = async () => {
+    if (filteredPatients.length === 0) return;
+    // If no current serving, start from first
+    let nextIndex = currentServingIndex >= 0 ? currentServingIndex + 1 : 0;
+
+    // Mark current as completed if exists
+    if (currentServingIndex >= 0 && filteredPatients[currentServingIndex]) {
+      const current = filteredPatients[currentServingIndex];
+      try {
+        await dispatch(updateTokenAppointmentStatus({ id: current.id, status: 'Completed' }));
+      } catch (err) {
+        console.error('Failed to mark current completed:', err);
+      }
+    }
+
+    // Find next non-completed
+    while (nextIndex < filteredPatients.length && filteredPatients[nextIndex].status === 'Completed') {
+      nextIndex += 1;
+    }
+
+    if (nextIndex >= filteredPatients.length) {
+      // No more patients
+      setCurrentServingIndex(-1);
+      setChamberRunning(false);
+      toast.info('No more patients in the list');
+      return;
+    }
+
+    setCurrentServingIndex(nextIndex);
+    setChamberRunning(true);
+    // Play next-patient beep
+    playBeep();
+    try { socketRef.current?.emit('control', { action: 'next', clinicId: selectedLocation, doctorId: selectedDoctor?.id, currentIndex: nextIndex }); } catch (e) {}
+  };
+
+  // Simple beep using WebAudio API (no external asset)
+  const playBeep = (frequency = 880, duration = 150) => {
+    try {
+      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContext) return;
+      const ctx = new AudioContext();
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = 'sine';
+      o.frequency.value = frequency;
+      g.gain.value = 0.0001;
+      o.connect(g);
+      g.connect(ctx.destination);
+      // ramp up quickly
+      const now = ctx.currentTime;
+      g.gain.exponentialRampToValueAtTime(0.2, now + 0.01);
+      o.start(now);
+      // stop after duration
+      setTimeout(() => {
+        g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.02);
+        o.stop(ctx.currentTime + 0.03);
+        try {
+          ctx.close();
+        } catch (e) {
+          // ignore
+        }
+      }, duration);
+    } catch (err) {
+      // ignore audio errors
+      console.error('playBeep error', err);
+    }
   };
 
   // Calculate stats
@@ -229,16 +400,7 @@ const LivePatientPage: React.FC = () => {
     };
   }, []);
 
-  if (!canAccessLivePatient) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
-          <p className="text-gray-600">You don't have permission to access this page.</p>
-        </div>
-      </div>
-    );
-  }
+  // Allow public (display-only) viewers to access this page without authentication.
 
   return (
     <div className="font-display bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark w-full min-h-screen">
@@ -393,6 +555,32 @@ const LivePatientPage: React.FC = () => {
                       <span className="inline-flex items-center rounded-full bg-green-100 dark:bg-green-900 px-2 py-0.5 text-xs font-medium text-green-800 dark:text-green-200 mt-1">
                         <span className="w-2 h-2 mr-1.5 rounded-full bg-green-500 animate-pulse"></span>Live
                       </span>
+                    <div className="mt-3 flex items-center gap-2 justify-end">
+                      <button
+                        onClick={handleStartChamber}
+                        className="px-3 py-1 rounded bg-green-600 text-white text-xs font-semibold hover:bg-green-700"
+                      >
+                        Start Chamber
+                      </button>
+                      <button
+                        onClick={handlePauseChamber}
+                        className="px-3 py-1 rounded bg-yellow-400 text-black text-xs font-semibold hover:bg-yellow-500"
+                      >
+                        Pause Chamber
+                      </button>
+                      <button
+                        onClick={handleEndChamber}
+                        className="px-3 py-1 rounded bg-red-600 text-white text-xs font-semibold hover:bg-red-700"
+                      >
+                        End Chamber
+                      </button>
+                      <button
+                        onClick={handleNextPatient}
+                        className="px-3 py-1 rounded bg-primary text-white text-xs font-semibold hover:bg-primary/90"
+                      >
+                        Next
+                      </button>
+                    </div>
                     </div>
                   </div>
                 )}

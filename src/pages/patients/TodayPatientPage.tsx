@@ -1,6 +1,6 @@
 import { format } from 'date-fns';
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { io, Socket } from 'socket.io-client';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
@@ -29,12 +29,12 @@ const formatTimeTo12Hour = (time24: string): string => {
   }
 };
 
-const LivePatientPage: React.FC = () => {
+const TodayPatientPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const dispatch = useAppDispatch();
   const { isAssistant, isAuthenticated, user, isAdmin, isDoctor } = useAuth();
-  const canAccessLivePatient = isAuthenticated && (isAdmin || isDoctor || isAssistant);
+  const canAccessToday = isAuthenticated && (isAdmin || isDoctor);
   const { isLoading } = useAppSelector(state => state.appointments);
   const { clinics } = useAppSelector(state => state.clinics);
   const { doctors, currentDoctorProfile } = useAppSelector(state => state.doctors);
@@ -45,7 +45,6 @@ const LivePatientPage: React.FC = () => {
   const [filteredPatients, setFilteredPatients] = useState<TokenAppointment[]>([]);
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const [currentServingIndex, setCurrentServingIndex] = useState<number>(-1); // Current serving patient index
-  const [playingVideoIds, setPlayingVideoIds] = useState<Set<number>>(new Set()); // Currently playing video IDs (multiple)
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false); // Fullscreen state
   const [chamberRunning, setChamberRunning] = useState<boolean>(false);
   const socketRef = React.useRef<Socket | null>(null);
@@ -107,15 +106,12 @@ const LivePatientPage: React.FC = () => {
     });
 
     socket.on('token_updated', (payload: TokenAppointment) => {
-      // Update the filteredPatients list if matches clinic/date
-      // Simple approach: refetch current filters
       if (selectedLocation && selectedDate) {
         handleFilter();
       }
     });
 
     socket.on('control', (data: any) => {
-      // control events: { action, clinicId, doctorId, currentIndex }
       if (data?.clinicId && Number(data.clinicId) !== Number(selectedLocation)) return;
       if (data.action === 'start') {
         setChamberRunning(true);
@@ -171,7 +167,6 @@ const LivePatientPage: React.FC = () => {
 
       if (fetchTokenAppointments.fulfilled.match(result)) {
         const patients = result.payload as TokenAppointment[];
-        // Sort by time
         const sortedPatients = [...patients].sort((a, b) => {
           const timeA = a.time || '';
           const timeB = b.time || '';
@@ -179,7 +174,6 @@ const LivePatientPage: React.FC = () => {
         });
         setFilteredPatients(sortedPatients);
         
-        // Find and set the doctor
         if (sortedPatients.length > 0) {
           const doctorId = sortedPatients[0].doctorId;
           const doctor = doctors.find(d => d.id === doctorId);
@@ -190,7 +184,6 @@ const LivePatientPage: React.FC = () => {
           }
         }
 
-        // Set current serving index to first "Pending" or "Confirmed" patient, or first patient
         const servingIndex = sortedPatients.findIndex(p => 
           p.status === 'Pending' || p.status === 'Confirmed'
         );
@@ -214,9 +207,7 @@ const LivePatientPage: React.FC = () => {
     }
     setChamberRunning(true);
     if (currentServingIndex < 0) setCurrentServingIndex(0);
-    // Play start beep
     playBeep();
-    // notify display clients
     try {
       socketRef.current?.emit('control', { action: 'start', clinicId: selectedLocation, doctorId: selectedDoctor?.id, currentIndex: currentServingIndex >= 0 ? currentServingIndex : 0 });
     } catch (e) {}
@@ -243,10 +234,8 @@ const LivePatientPage: React.FC = () => {
 
   const handleNextPatient = async () => {
     if (filteredPatients.length === 0) return;
-    // If no current serving, start from first
     let nextIndex = currentServingIndex >= 0 ? currentServingIndex + 1 : 0;
 
-    // Mark current as completed if exists
     if (currentServingIndex >= 0 && filteredPatients[currentServingIndex]) {
       const current = filteredPatients[currentServingIndex];
       try {
@@ -256,13 +245,11 @@ const LivePatientPage: React.FC = () => {
       }
     }
 
-    // Find next non-completed
     while (nextIndex < filteredPatients.length && filteredPatients[nextIndex].status === 'Completed') {
       nextIndex += 1;
     }
 
     if (nextIndex >= filteredPatients.length) {
-      // No more patients
       setCurrentServingIndex(-1);
       setChamberRunning(false);
       toast.info('No more patients in the list');
@@ -271,12 +258,10 @@ const LivePatientPage: React.FC = () => {
 
     setCurrentServingIndex(nextIndex);
     setChamberRunning(true);
-    // Play next-patient beep
     playBeep();
     try { socketRef.current?.emit('control', { action: 'next', clinicId: selectedLocation, doctorId: selectedDoctor?.id, currentIndex: nextIndex }); } catch (e) {}
   };
 
-  // Simple beep using WebAudio API (no external asset)
   const playBeep = (frequency = 880, duration = 150) => {
     try {
       const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
@@ -289,27 +274,22 @@ const LivePatientPage: React.FC = () => {
       g.gain.value = 0.0001;
       o.connect(g);
       g.connect(ctx.destination);
-      // ramp up quickly
       const now = ctx.currentTime;
       g.gain.exponentialRampToValueAtTime(0.2, now + 0.01);
       o.start(now);
-      // stop after duration
       setTimeout(() => {
         g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.02);
         o.stop(ctx.currentTime + 0.03);
         try {
           ctx.close();
         } catch (e) {
-          // ignore
         }
       }, duration);
     } catch (err) {
-      // ignore audio errors
       console.error('playBeep error', err);
     }
   };
 
-  // Calculate stats
   const stats = useMemo(() => {
     const total = filteredPatients.length;
     const completed = filteredPatients.filter(p => p.status === 'Completed').length;
@@ -320,57 +300,14 @@ const LivePatientPage: React.FC = () => {
   }, [filteredPatients, currentServingIndex]);
 
 
-  // YouTube videos data
-  const youtubeVideos = [
-    {
-      id: 1,
-      title: 'Understanding Sinusitis: Causes and Treatments',
-      author: 'Dr. Ashraful Islam Razib',
-      thumbnail: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD_sL-wQNM7I7xO2V6HCqa6aQG47Y_n9nlu5XM2_dXmPpdIoAcj6yI1Rf0wkq4g-5m703yBdih-EpKA5WRRkA6v5jVoe4Z3DlGyW7d54MlSWqVzrgKek2T8UTJ4AIIuswvJvCghaJx1Oa2kBLjgFmjdMCzG4CZnJEu72bAMQO9dOKDQXhYg0eX-OLvQJ0pEx9CMn648suZBbPkWn0XX3UN57Big0_MIXA4Mow3Ex7o-oTnDdQmWkhAAKJAnGfV5sxz8-FKdLgOH5m7e',
-      url: 'https://www.youtube.com/watch?v=Z5zqFhC-0dI', // Replace with actual YouTube URL
-    },
-    {
-      id: 2,
-      title: 'ENT Operation: Surgical Procedure',
-      author: 'Dr. Ashraful Islam Razib',
-      thumbnail: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDVEBhZy7mlvrl3JMDKp2anlKyPDdZfuh9J_rBJTYEAQ2UqNt97b4tCm-5hMPKdHErmdaxEEvvoJDGdRfQ9yGf_APwOdkQNjHNl2gs3ZfMEFCXJhrG4ln1XN_SFrZ8Z7iBEMYR8Ziq-N-OMWPcRlbM_Bhtn8A0m3WkKuVzTpRtpbb4WZHERaaEM0oV13Y5COEK6s4Pq9VUE4ENdPmweqTGySwpwtYPQfUbXP3E1uUtvlKvHQ_TUYFmQDBQg1oezLhZV1veTpKT-A5O0',
-      url: 'https://www.youtube.com/watch?v=R3i1P6_ARvI', // Replace with actual ENT operation YouTube URL
-    },
-  ];
+  
 
-  // Convert YouTube URL to embed URL
-  const getYouTubeEmbedUrl = (url: string): string => {
-    const videoId = url.includes('youtu.be/') 
-      ? url.split('youtu.be/')[1].split('?')[0]
-      : url.includes('watch?v=')
-      ? url.split('watch?v=')[1].split('&')[0]
-      : '';
-    return `https://www.youtube.com/embed/${videoId}?autoplay=1`;
-  };
-
-  const handleVideoClick = (videoId: number) => {
-    setPlayingVideoIds(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(videoId)) {
-        // If clicking the same video, close it
-        newSet.delete(videoId);
-      } else {
-        // Open the clicked video (can have multiple videos playing)
-        newSet.add(videoId);
-      }
-      return newSet;
-    });
-  };
-
-  // Fullscreen functionality
   const toggleFullscreen = async () => {
     try {
       if (!document.fullscreenElement) {
-        // Enter fullscreen
         await document.documentElement.requestFullscreen();
         setIsFullscreen(true);
       } else {
-        // Exit fullscreen
         await document.exitFullscreen();
         setIsFullscreen(false);
       }
@@ -380,7 +317,6 @@ const LivePatientPage: React.FC = () => {
     }
   };
 
-  // Listen for fullscreen changes
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
@@ -399,70 +335,13 @@ const LivePatientPage: React.FC = () => {
     };
   }, []);
 
-  // Allow public (display-only) viewers to access this page without authentication.
-
   return (
     <div className="font-display bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark w-full min-h-screen">
       <div className="flex h-screen w-full flex-col">
-        {/* Header/Navbar */}
-        <header className="sticky top-0 z-50 flex items-center justify-center border-b border-slate-200/80 dark:border-slate-800/80 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-sm">
-          <nav className="flex w-full items-center justify-between px-4 py-2 md:px-8">
-            <div className="flex items-center gap-4">
-              <div className="text-primary">
-                <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M12 3.25c2.622 0 4.75 2.128 4.75 4.75 0 2.622-2.128 4.75-4.75 4.75S7.25 10.622 7.25 8 9.378 3.25 12 3.25zM5.5 21v-2a4 4 0 0 1 4-4h5a4 4 0 0 1 4 4v2" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"></path>
-                </svg>
-              </div>
-              <Link to="/" className="text-xl font-bold tracking-[-0.015em] text-text-light dark:text-text-dark">
-                Sakura
-              </Link>
-            </div>
-            <div className="hidden items-center gap-8 md:flex">
-              <Link to="/" className="text-sm font-medium text-text-muted-light hover:text-primary dark:text-text-muted-dark dark:hover:text-primary">
-                Home
-              </Link>
-              <Link to="/book-appointment" className="text-sm font-medium text-text-muted-light hover:text-primary dark:text-text-muted-dark dark:hover:text-primary">
-                Appointment
-              </Link>
-              <Link to="/patients" className="text-sm font-medium text-text-muted-light hover:text-primary dark:text-text-muted-dark dark:hover:text-primary">
-                Patients
-              </Link>
-              <Link to="/patients/live" className="text-sm font-bold text-primary dark:text-secondary">
-                Live Patient
-              </Link>
-              <a href="#services" className="text-sm font-medium text-text-muted-light hover:text-primary dark:text-text-muted-dark dark:hover:text-primary">
-                Services
-              </a>
-              <a href="#faq" className="text-sm font-medium text-text-muted-light hover:text-primary dark:text-text-muted-dark dark:hover:text-primary">
-                FAQ
-              </a>
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={toggleFullscreen}
-                className="flex items-center justify-center rounded-full h-10 w-10 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-                title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
-              >
-                <span className="material-symbols-outlined !text-xl">
-                  {isFullscreen ? 'fullscreen_exit' : 'fullscreen'}
-                </span>
-              </button>
-              <button 
-                onClick={() => navigate('/book-appointment')}
-                className="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-10 px-6 bg-primary text-white text-sm font-bold tracking-wide transition-colors hover:bg-primary/90"
-              >
-                <span className="truncate">Book Now</span>
-              </button>
-            </div>
-          </nav>
-        </header>
-
         <main className="flex-grow overflow-y-auto">
           <div className="w-full px-4 md:px-8 py-6">
             <div className="grid grid-cols-12 gap-6 h-full">
-              {/* Left Column - Main Content */}
-              <div className="col-span-12 lg:col-span-8 flex flex-col gap-4">
-                {/* Filters */}
+              <div className="col-span-12 flex flex-col gap-4">
                 <div className="bg-white dark:bg-slate-800/50 p-4 rounded-xl shadow-md">
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-4 md:items-end">
                     <div>
@@ -524,7 +403,6 @@ const LivePatientPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Doctor Info Card */}
                 {selectedDoctor && (
                   <div className="bg-white dark:bg-slate-800/50 p-4 rounded-xl shadow-lg flex items-center gap-4">
                     <img 
@@ -555,7 +433,7 @@ const LivePatientPage: React.FC = () => {
                         <span className="w-2 h-2 mr-1.5 rounded-full bg-green-500 animate-pulse"></span>Live
                       </span>
                     <div className="mt-3 flex items-center gap-2 justify-end">
-                      {/* <button
+                      <button
                         onClick={handleStartChamber}
                         className="px-3 py-1 rounded bg-green-600 text-white text-xs font-semibold hover:bg-green-700"
                       >
@@ -578,13 +456,12 @@ const LivePatientPage: React.FC = () => {
                         className="px-3 py-1 rounded bg-primary text-white text-xs font-semibold hover:bg-primary/90"
                       >
                         Next
-                      </button> */}
+                      </button>
                     </div>
                     </div>
                   </div>
                 )}
 
-                {/* Patient Table */}
                 <div className="flex-grow overflow-x-auto overflow-y-auto bg-white dark:bg-slate-800/50 rounded-xl shadow-md">
                   {isLoading ? (
                     <div className="flex items-center justify-center h-64">
@@ -671,71 +548,6 @@ const LivePatientPage: React.FC = () => {
                   )}
                 </div>
               </div>
-
-              {/* Right Column - YouTube Videos */}
-              <div className="col-span-12 lg:col-span-4 flex flex-col gap-4">
-                <div className="text-left">
-                  <h2 className="text-xl font-bold tracking-tight text-text-light dark:text-text-dark">From My YouTube Channel</h2>
-                  <p className="mt-1 text-sm text-text-muted-light dark:text-text-muted-dark">
-                    Educational videos and insights.
-                  </p>
-                </div>
-                <div className="flex-grow flex flex-col gap-3 overflow-y-auto">
-                  {youtubeVideos.map((video) => (
-                    <div
-                      key={video.id}
-                      className="group overflow-hidden rounded-xl shadow-lg bg-white dark:bg-slate-800/50 flex-shrink-0"
-                    >
-                      <div className="relative aspect-video">
-                        {playingVideoIds.has(video.id) ? (
-                          <>
-                            <iframe
-                              className="w-full h-full"
-                              src={getYouTubeEmbedUrl(video.url)}
-                              title={video.title}
-                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                              allowFullScreen
-                            />
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setPlayingVideoIds(prev => {
-                                  const newSet = new Set(prev);
-                                  newSet.delete(video.id);
-                                  return newSet;
-                                });
-                              }}
-                              className="absolute top-2 right-2 bg-black/70 hover:bg-black/90 text-white rounded-full p-1.5 transition-colors z-10"
-                              title="Close video"
-                            >
-                              <span className="material-symbols-outlined !text-lg">close</span>
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <img 
-                              alt={video.title}
-                              className="w-full h-full object-cover transition-transform group-hover:scale-105 cursor-pointer"
-                              src={video.thumbnail}
-                              onClick={() => handleVideoClick(video.id)}
-                            />
-                            <div 
-                              className="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/40 transition-colors cursor-pointer"
-                              onClick={() => handleVideoClick(video.id)}
-                            >
-                              <span className="material-symbols-outlined !text-4xl text-white/80 drop-shadow-lg group-hover:scale-110 transition-transform">play_circle</span>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                      <div className="p-3">
-                        <h3 className="font-semibold text-sm text-text-light dark:text-text-dark leading-tight">{video.title}</h3>
-                        <p className="text-xs text-text-muted-light dark:text-text-muted-dark mt-1">{video.author}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
           </div>
         </main>
@@ -744,4 +556,4 @@ const LivePatientPage: React.FC = () => {
   );
 };
 
-export default LivePatientPage;
+export default TodayPatientPage;

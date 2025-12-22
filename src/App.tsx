@@ -1,48 +1,48 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Provider } from 'react-redux';
+import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
-import { store } from './store';
 import { useAuth } from './hooks/useAuth';
+import { store } from './store';
 
 // Layouts
-import DashboardLayout from './layouts/DashboardLayout';
 import AuthLayout from './layouts/AuthLayout';
+import DashboardLayout from './layouts/DashboardLayout';
 
 // Pages
-import HomePage from './pages/home/HomePage';
-import AboutMePage from './pages/home/AboutMePage';
+import AdminPage from './pages/admin/AdminPage';
+import AppointmentsPage from './pages/appointments/AppointmentsPage';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import DashboardPage from './pages/dashboard/DashboardPage';
-import AppointmentsPage from './pages/appointments/AppointmentsPage';
-import BookAppointmentPage from './pages/appointments/BookAppointmentPage';
-import PatientBookingPage from './pages/patients/PatientBookingPage';
 import DoctorsPage from './pages/doctors/DoctorsPage';
+import AboutMePage from './pages/home/AboutMePage';
+import HomePage from './pages/home/HomePage';
+import LivePatientPage from './pages/patients/LivePatientPage';
+import PatientBookingPage from './pages/patients/PatientBookingPage';
 import PatientsPage from './pages/patients/PatientsPage';
 import PatientsViewPage from './pages/patients/PatientsViewPage';
-import LivePatientPage from './pages/patients/LivePatientPage';
-import AdminPage from './pages/admin/AdminPage';
-import CreateDoctorProfilePage from './pages/profile/CreateDoctorProfilePage';
+import TodayPatientPage from './pages/patients/TodayPatientPage';
 import CreateAssistantProfilePage from './pages/profile/CreateAssistantProfilePage';
+import CreateDoctorProfilePage from './pages/profile/CreateDoctorProfilePage';
 import CreateUserProfilePage from './pages/profile/CreateUserProfilePage';
 
 // Components
-import LoadingSpinner from './components/ui/LoadingSpinner';
 import ProtectedRoute from './components/common/ProtectedRoute';
+import LoadingSpinner from './components/ui/LoadingSpinner';
 
 import 'react-toastify/dist/ReactToastify.css';
 import './index.css';
 import AdminUsersPage from './pages/admin/AdminUsersPage';
-import AssistantsPage from './pages/assistants/AssistantsPage';
-import AssistantBookingPage from './pages/assistants/AssistantBookingPage';
-import DoctorBookingPage from './pages/doctors/DoctorBookingPage';
-import ClinicsPage from './pages/clinics/ClinicsPage';
 import GlobalDashboardPage from './pages/admin/GlobalDashboardPage';
-import ReportsPage from './pages/reports/ReportsPage';
-import SettingsPage from './pages/settings/SettingsPage';
+import AssistantBookingPage from './pages/assistants/AssistantBookingPage';
+import AssistantsPage from './pages/assistants/AssistantsPage';
+import ClinicsPage from './pages/clinics/ClinicsPage';
+import DoctorBookingPage from './pages/doctors/DoctorBookingPage';
 import MessagesPage from './pages/messages/MessagesPage';
 import PatientMessagesPage from './pages/messages/PatientMessagesPage';
+import ReportsPage from './pages/reports/ReportsPage';
+import SettingsPage from './pages/settings/SettingsPage';
 
 const AppContent: React.FC = () => {
   const { isLoading, isAuthenticated, user } = useAuth();
@@ -80,9 +80,10 @@ const AppContent: React.FC = () => {
             <DashboardLayout><PatientsViewPage /></DashboardLayout>
           </ProtectedRoute>
         } />
-        <Route path="/patients/live" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Doctor', 'Assistant']}>
-            <LivePatientPage />
+        <Route path="/patients/live" element={<LivePatientPage />} />
+        <Route path="/patients/today" element={
+          <ProtectedRoute allowedRoles={['Admin', 'Doctor']}>
+            <DashboardLayout><TodayPatientPage /></DashboardLayout>
           </ProtectedRoute>
         } />
 
